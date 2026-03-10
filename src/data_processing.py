@@ -1,56 +1,34 @@
 import pandas as pd
+import os
 
-
-def optimize_memory(df: pd.DataFrame) -> pd.DataFrame:
+def process_data(input_path, output_filename="processed_data.csv"):
+    # 1. Load the raw data
+    df = pd.read_csv(input_path)
+    
+    # 2. Perform your transformations (like get_dummies)
+    # This turns 'Gender', 'Family History', etc., into 0s and 1s
+    df_processed = pd.get_dummies(df, drop_first=True)
+    
+    # 3. Define the output path
+    output_path = os.path.join("data", "processed", output_filename)
+    
+    # 4. Save it!
+    df_processed.to_csv(output_path, index=False)
+    print(f"✔ Success! Processed data saved to: {output_path}")
+    
+    return output_path
+def load_processed_data(file_name="processed_data.csv"):
     """
-    Optimize the memory usage of a pandas DataFrame.
-
-    This function:
-    - Calculates and prints the initial memory usage in megabytes.
-    - Downcasts numeric columns to more memory-efficient dtypes:
-      * Float-like columns are converted using ``pd.to_numeric(..., downcast="float")``.
-      * Integer-like columns are converted using ``pd.to_numeric(..., downcast="integer")``.
-    - Converts object columns to the ``category`` dtype when they have relatively low
-      cardinality (unique values / total rows < 0.5), which can significantly reduce memory.
-    - Calculates and prints the final memory usage and the percentage reduction.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input DataFrame to optimize. It is not modified in-place; a copy is returned.
-
-    Returns
-    -------
-    pd.DataFrame
-        A new DataFrame with more memory-efficient dtypes where possible.
+    Loads the processed dataset from data/processed/.
     """
-    df_optimized = df.copy()
+    path = os.path.join("data", "processed", file_name)
+    
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    else:
+        print(f"Error: {path} not found.")
+        return None
 
-    start_mem = df_optimized.memory_usage(deep=True).sum() / (1024 ** 2)
-    print(f"Initial memory usage: {start_mem:.2f} MB")
-
-    for col in df_optimized.columns:
-        col_series = df_optimized[col]
-        col_dtype = col_series.dtype
-
-        # Handle numeric columns: ints and floats
-        if pd.api.types.is_numeric_dtype(col_dtype):
-            if pd.api.types.is_integer_dtype(col_dtype):
-                df_optimized[col] = pd.to_numeric(col_series, downcast="integer")
-            elif pd.api.types.is_float_dtype(col_dtype):
-                df_optimized[col] = pd.to_numeric(col_series, downcast="float")
-
-        # Handle object columns with low cardinality -> category
-        elif pd.api.types.is_object_dtype(col_dtype):
-            if len(df_optimized) > 0:
-                unique_ratio = col_series.nunique(dropna=False) / len(df_optimized)
-                if unique_ratio < 0.5:
-                    df_optimized[col] = col_series.astype("category")
-
-    end_mem = df_optimized.memory_usage(deep=True).sum() / (1024 ** 2)
-    reduction = ((start_mem - end_mem) / start_mem * 100) if start_mem > 0 else 0.0
-
-    print(f"Final memory usage: {end_mem:.2f} MB")
-    print(f"Memory reduction: {reduction:.2f}%")
-
-    return df_optimized
+if __name__ == "__main__":
+    # Run this to test it
+    process_data("data/ObesityDataSet_raw_and_data_sinthetic.csv")
