@@ -5,6 +5,7 @@ models/*.pkl
 # Ignore python environment and cache
 __pycache__/
 venv/
+.venv/
 .env
 
 catboost_info
