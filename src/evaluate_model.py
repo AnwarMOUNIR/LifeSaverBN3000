@@ -126,6 +126,63 @@ def create_shap_summary_plots(shap_values, X: pd.DataFrame) -> None:
     )
 
 
+def generate_shap_individual_explanation(
+    patient_idx: int,
+    explainer,
+    shap_values,
+    X: pd.DataFrame,
+    output_dir: str = "outputs/plots/",
+) -> None:
+    """
+    Generate SHAP force and waterfall plots for a single patient's prediction.
+
+    - Force plot: montre comment chaque feature pousse la prédiction depuis la
+      valeur de base (expected value) jusqu'à la prédiction finale
+      (rouge = augmente la prédiction, bleu = la diminue).
+    - Waterfall plot: représente en cascade l'impact de chaque feature sur la
+      prédiction, ce qui est généralement plus lisible pour les médecins.
+
+    Utiliser cette fonction pour l'interface Streamlit/Flask afin d'expliquer
+    une prédiction à un médecin pour un patient spécifique.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Ensure we have a row for this patient
+    if isinstance(X, pd.DataFrame):
+        x_patient = X.iloc[patient_idx]
+    else:
+        x_patient = X[patient_idx]
+
+    # --- Force plot ---
+    # Note: the modern shap API often returns an Explanation object; if so,
+    # shap_values[patient_idx] should already contain the base value.
+    force_plot = shap.plots.force(
+        explainer.expected_value,
+        shap_values[patient_idx],
+        x_patient,
+        show=False,
+    )
+    # Prefer HTML export for interactive visualization
+    shap.save_html(
+        os.path.join(output_dir, f"force_plot_patient_{patient_idx}.html"),
+        force_plot,
+    )
+
+    # --- Waterfall plot ---
+    shap.plots.waterfall(shap_values[patient_idx], max_display=10, show=False)
+    plt.title(f"SHAP Waterfall Plot - Patient {patient_idx}")
+    plt.savefig(
+        os.path.join(output_dir, f"waterfall_plot_patient_{patient_idx}.png"),
+        dpi=300,
+        bbox_inches="tight",
+    )
+    plt.close()
+
+    print(
+        f"Force plot et Waterfall plot générés pour patient {patient_idx} dans {output_dir}"
+    )
+
+
 def generate_shap_summary_plot(shap_values, X_sample: pd.DataFrame, output_path: Path) -> None:
     """Generate and save a SHAP summary beeswarm plot."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
