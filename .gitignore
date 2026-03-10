@@ -47,3 +47,7 @@ MANIFEST
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Custom folders
+ignored/
+jira_tasks_backlog/
