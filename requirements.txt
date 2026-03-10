@@ -6,12 +6,3 @@ lightgbm
 catboost
 joblib
 matplotlib
-
-# Testing
-pytest
-
-# Streamlit frontend UI
-streamlit
-
-# Explainable AI (XAI)
-shap
