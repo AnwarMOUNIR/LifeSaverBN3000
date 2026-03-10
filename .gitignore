@@ -52,3 +52,6 @@ Thumbs.db
 # Custom folders
 ignored/
 jira_tasks_backlog/
+
+# Untracked personal files
+src/personal_tf_classifier.py
