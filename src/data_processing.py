@@ -28,6 +28,7 @@ def load_processed_data(file_name="processed_data.csv"):
     else:
         print(f"Error: {path} not found.")
         return None
+
 if __name__ == "__main__":
     # Run this to test it
     process_data("data/ObesityDataSet_raw_and_data_sinthetic.csv")
