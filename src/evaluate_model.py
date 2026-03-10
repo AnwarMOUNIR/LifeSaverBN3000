@@ -19,10 +19,13 @@ Run this file as a standalone script to regenerate the SHAP explanation plot:
 
 from pathlib import Path
 import os
+import json
+
 import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
 import shap
+import numpy as np
 
 
 MODEL_PATH = Path("models") / "best_model.pkl"
@@ -181,6 +184,121 @@ def generate_shap_individual_explanation(
     print(
         f"Force plot et Waterfall plot générés pour patient {patient_idx} dans {output_dir}"
     )
+
+
+def convert_shap_to_ui_format(
+    explainer,
+    shap_values,
+    X_row,
+    patient_idx: int | None = None,
+):
+    """
+    Convert SHAP outputs into a JSON‑friendly format for frontend UIs (Streamlit / Flask).
+
+    Ce format est conçu pour être envoyé via une API ou chargé dans une app
+    Streamlit/Flask. Le frontend peut ensuite afficher :
+    - la base_value (valeur de base du modèle),
+    - des barres colorées (rouge/bleu) pour chaque feature,
+    - la somme des contributions (SHAP values) menant à la prédiction finale.
+    """
+    # Normalize SHAP values to a 1D array for a single instance
+    if hasattr(shap_values, "values"):
+        sv = shap_values.values
+        base_value = getattr(shap_values, "base_values", explainer.expected_value)
+    else:
+        sv = np.array(shap_values)
+        base_value = explainer.expected_value
+
+    sv = np.array(sv)
+    if sv.ndim > 1:
+        sv_instance = sv[0]
+    else:
+        sv_instance = sv
+
+    # Handle base_value potentially being an array (e.g., multiclass)
+    base_value_arr = np.array(base_value)
+    if base_value_arr.ndim > 0:
+        base_val_scalar = float(base_value_arr[0])
+    else:
+        base_val_scalar = float(base_value_arr)
+
+    # Extract feature names and values
+    if isinstance(X_row, pd.Series):
+        feature_names = X_row.index.tolist()
+        feature_values = X_row.values
+    elif isinstance(X_row, dict):
+        feature_names = list(X_row.keys())
+        feature_values = np.array(list(X_row.values()))
+    else:
+        # Fallback: use explainer.feature_names or indices
+        feature_values = np.array(X_row)
+        feature_names = getattr(explainer, "feature_names", None)
+        if feature_names is None:
+            feature_names = [f"feature_{i}" for i in range(len(feature_values))]
+
+    # Ensure lengths match
+    min_len = min(len(feature_names), len(feature_values), len(sv_instance))
+    feature_names = feature_names[:min_len]
+    feature_values = feature_values[:min_len]
+    sv_instance = sv_instance[:min_len]
+
+    # Sort features by absolute impact (descending)
+    order = np.argsort(-np.abs(sv_instance))
+    feature_names = [feature_names[i] for i in order]
+    feature_values = feature_values[order]
+    sv_sorted = sv_instance[order]
+
+    features_list = []
+    for name, val, sv_val in zip(feature_names, feature_values, sv_sorted):
+        impact_direction = "positive" if sv_val > 0 else "negative"
+        features_list.append(
+            {
+                "feature_name": str(name),
+                "feature_value": float(val) if isinstance(val, (int, float)) else str(val),
+                "shap_value": round(float(sv_val), 4),
+                "impact_direction": impact_direction,
+                "contribution": round(float(sv_val), 4),
+            }
+        )
+
+    total_contribution = float(np.sum(sv_sorted))
+    prediction = base_val_scalar + total_contribution
+
+    # Optional force plot data for JS reconstruction (if available)
+    force_plot_data = None
+    try:
+        fp = shap.plots.force(
+            base_val_scalar,
+            sv_instance,
+            feature_values,
+            show=False,
+        )
+        force_plot_data = getattr(fp, "data", None)
+    except Exception:
+        force_plot_data = None
+
+    # Waterfall data: already sorted by |shap_value|
+    waterfall_data = features_list
+
+    ui_dict = {
+        "prediction": round(prediction, 4),
+        "base_value": round(base_val_scalar, 4),
+        "features": features_list,
+        "total_contribution": round(total_contribution, 4),
+        "force_plot_data": force_plot_data,
+        "waterfall_data": waterfall_data,
+    }
+
+    # Optionally persist to JSON for inspection / frontend loading
+    if patient_idx is not None:
+        os.makedirs("outputs/shap_ui", exist_ok=True)
+        json_path = os.path.join("outputs/shap_ui", f"patient_{patient_idx}.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(ui_dict, f, ensure_ascii=False, indent=2)
+        print("SHAP data formaté pour UI et sauvegardé en JSON:", json_path)
+
+    return ui_dict
+
 
 
 def generate_shap_summary_plot(shap_values, X_sample: pd.DataFrame, output_path: Path) -> None:
