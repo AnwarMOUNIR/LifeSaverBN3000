@@ -14,4 +14,4 @@ pytest
 streamlit
 
 # Explainable AI (XAI)
-shap
+shap>=0.45.0  # SHAP for model explainability (project requirement)
