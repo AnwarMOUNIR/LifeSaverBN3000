@@ -18,7 +18,7 @@ Run this file as a standalone script to regenerate the SHAP explanation plot:
 """
 
 from pathlib import Path
-
+import os
 import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -90,16 +90,20 @@ def create_shap_summary_plots(shap_values, X: pd.DataFrame) -> None:
     Les features en haut ont le plus d'influence. Les couleurs indiquent si la
     valeur haute/basse de la feature augmente ou diminue la prédiction
     (rouge = augmente, bleu = diminue).
+
+    Sauvegarde du plot SHAP beeswarm montrant l'impact moyen des features
+    sur les prédictions du modèle.
     """
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    # Ensure output directory exists
+    os.makedirs("outputs/plots", exist_ok=True)
 
     # Beeswarm / dot summary plot for global importance
     plt.figure(figsize=(10, 6))
-    shap.summary_plot(shap_values, X, plot_type="dot", show=False)
+    shap.summary_plot(shap_values, X, show=False)
     plt.title("SHAP Summary Plot - Global Feature Importance")
     plt.tight_layout()
     plt.savefig(
-        OUTPUT_DIR / "shap_summary_global_importance.png",
+        "outputs/plots/shap_summary_beeswarm.png",
         dpi=300,
         bbox_inches="tight",
     )
