@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 st.set_page_config(
     page_title="LifeSaverBN3000",
@@ -76,3 +77,24 @@ mtrans = st.sidebar.selectbox(
     "Main mode of transportation",
     options=["Automobile", "Bike", "Motorbike", "Public_Transportation", "Walking"]
 )
+
+input_data = pd.DataFrame({
+    "Gender": [gender],
+    "Age": [age],
+    "Height": [height],
+    "Weight": [weight],
+    "family_history_with_overweight": [family_history],
+    "FAVC": [favc],
+    "FCVC": [fcvc],
+    "NCP": [ncp],
+    "CAEC": [caec],
+    "SMOKE": [smoke],
+    "CH2O": [ch2o],
+    "SCC": [scc],
+    "FAF": [faf],
+    "TUE": [tue],
+    "CALC": [calc],
+    "MTRANS": [mtrans],
+})
+st.subheader("Input Data Summary")
+st.dataframe(input_data)
