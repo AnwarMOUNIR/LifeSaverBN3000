@@ -82,6 +82,46 @@ def create_explainer(model, X_sample: pd.DataFrame) -> shap.TreeExplainer:
     return explainer
 
 
+def create_shap_summary_plots(shap_values, X: pd.DataFrame) -> None:
+    """
+    Generate and save SHAP summary plots (beeswarm + bar) for global feature importance.
+
+    Ce plot montre l'impact global des features sur les prédictions du modèle.
+    Les features en haut ont le plus d'influence. Les couleurs indiquent si la
+    valeur haute/basse de la feature augmente ou diminue la prédiction
+    (rouge = augmente, bleu = diminue).
+    """
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Beeswarm / dot summary plot for global importance
+    plt.figure(figsize=(10, 6))
+    shap.summary_plot(shap_values, X, plot_type="dot", show=False)
+    plt.title("SHAP Summary Plot - Global Feature Importance")
+    plt.tight_layout()
+    plt.savefig(
+        OUTPUT_DIR / "shap_summary_global_importance.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    plt.close()
+
+    # Bar plot for mean absolute SHAP value (feature importance)
+    plt.figure(figsize=(10, 6))
+    shap.summary_plot(shap_values, X, plot_type="bar", show=False)
+    plt.title("SHAP Summary Bar Plot - Feature Importance")
+    plt.tight_layout()
+    plt.savefig(
+        OUTPUT_DIR / "shap_summary_bar.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    plt.close()
+
+    print(
+        "SHAP Summary Plots (beeswarm + bar) générés et sauvegardés dans outputs/plots/"
+    )
+
+
 def generate_shap_summary_plot(shap_values, X_sample: pd.DataFrame, output_path: Path) -> None:
     """Generate and save a SHAP summary beeswarm plot."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -115,13 +155,8 @@ def main() -> None:
     print("Computing SHAP values on the sampled data...")
     shap_values = explainer(X_sample)
 
-    print(f"Generating SHAP summary beeswarm plot at: {OUTPUT_PLOT_PATH}")
-    generate_shap_summary_plot(shap_values, X_sample, OUTPUT_PLOT_PATH)
-
-    print(
-        "SHAP summary plot généré et sauvegardé pour interprétation globale des features : "
-        f"{OUTPUT_PLOT_PATH}"
-    )
+    # Generate classic beeswarm + bar SHAP summary plots for global feature importance
+    create_shap_summary_plots(shap_values, X_sample)
 
 
 if __name__ == "__main__":
