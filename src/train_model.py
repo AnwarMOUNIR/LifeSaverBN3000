@@ -72,6 +72,9 @@ def run_pipeline(processed_data_path):
             
         elif name == "XGBoost":  # <-- ADD THIS PART!
             print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
+            
+        elif name == "LightGBM":  # <-- ADDED FOR LIGHTGBM
+            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
 
         metrics = {
             "Model": name,
