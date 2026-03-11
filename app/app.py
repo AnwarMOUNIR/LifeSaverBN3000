@@ -104,7 +104,7 @@ input_data = pd.DataFrame({
     "family_history_with_overweight": [family_history], "FAVC": [favc],
     "FCVC": [fcvc], "NCP": [ncp], "CAEC": [caec], "SMOKE": [smoke],
     "CH2O": [ch2o], "SCC": [scc], "FAF": [faf], "TUE": [tue],
-    "CALC": [calc], "MTRANS": [mtrans], "BMI": [bmi]
+    "CALC": [calc], "MTRANS": [mtrans]
 })
 
 
@@ -119,7 +119,6 @@ def encode_input(input_df, feature_cols):
         "Age": input_df["Age"].values[0],
         "Height": input_df["Height"].values[0],
         "Weight": input_df["Weight"].values[0],
-        "BMI": input_df["BMI"].values[0],
         "FCVC": input_df["FCVC"].values[0],
         "NCP": input_df["NCP"].values[0],
         "CH2O": input_df["CH2O"].values[0],
@@ -191,11 +190,7 @@ else:
         probability = st.session_state["probability"]
         encoded_input = st.session_state["encoded_input"]
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("BMI", f"{bmi:.2f}")
-        with col2:
-            st.metric("Model Confidence", f"{probability:.1%}")
+        st.metric("Model Confidence", f"{probability:.1%}")
 
         if "Normal_Weight" in prediction_label or "Insufficient" in prediction_label:
             st.success(

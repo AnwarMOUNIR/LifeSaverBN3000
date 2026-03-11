@@ -143,102 +143,34 @@ def run_pipeline(processed_data_path):
         random_state=42
     )
 
-    # 2. Define the 4 Models
-    models = {
-        "Random Forest": RandomForestClassifier(random_state=42),
-        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='mlogloss'),
-        "LightGBM": LGBMClassifier(verbose=-1),
-        "CatBoost": CatBoostClassifier(verbose=0)
-    }
-
-    results = []
-
-    # 3. Train and Evaluate
-    print(f"{'Model':<20} | {'AUC':<8} | {'Acc':<8} | {'Prec':<8} | {'Rec':<8} | {'F1':<8}")
-    print("-" * 75)
-
-    for name, model in models.items():
-        model.fit(X_train, y_train)
-        preds = model.predict(X_test)
-        probs = model.predict_proba(X_test)  # Full matrix for ovr auc
-
-        # --- NEW CODE FOR YOUR TASK ---
-        if name == "Random Forest":
-            print(f"\n[LOG] {name} Predictions (first 5): {preds[:5]}")    
-        elif name == "XGBoost": 
-            pass # we only need one log output 
-        elif name == "LightGBM":
-            pass
-        
-        metrics = calculate_metrics(y_test, preds, probs, model_name=name)
-        
-        results.append(metrics)
-        
-        print(f"{name:<20} | {metrics['ROC-AUC']:<8} | {metrics['Accuracy']:<8} | "
-              f"{metrics['Precision']:<8} | {metrics['Recall']:<8} | {metrics['F1-Score']:<8}")
-
-    # 4. Identify the Best Model
-    best_model_info = max(results, key=lambda x: (x['ROC-AUC'], x['Accuracy']))
-    best_model_name = best_model_info['Model']
+    # 2. Fast-track Training (Using Random Forest for maximum stability)
+    print("🚀 Training optimized Random Forest model on 23 raw features...")
     
-    print("\n" + "=" * 75)
-    print(f"🏆 WINNER: {best_model_name}. Starting Hyperparameter Tuning...")
-    
-    # Define the parameter grids for each model
-    param_grids = {
-        "Random Forest": {
-            'n_estimators': [100, 200, 300],
-            'max_depth': [None, 10, 20, 30],
-            'min_samples_split': [2, 5, 10]
-        },
-        "XGBoost": {
-            'n_estimators': [100, 200],
-            'max_depth': [3, 6, 9],
-            'learning_rate': [0.01, 0.1, 0.2]
-        },
-        "LightGBM": {
-            'n_estimators': [100, 200],
-            'max_depth': [-1, 10, 20],
-            'learning_rate': [0.01, 0.1, 0.2]
-        },
-        "CatBoost": {
-            'iterations': [100, 200],
-            'depth': [4, 6, 8],
-            'learning_rate': [0.01, 0.1, 0.2]
-        }
-    }
-
-    # Grab the untrained base model and its matching grid
-    best_base_model = models[best_model_name]
-    grid = param_grids[best_model_name]
-
-    # Set up the Random Search
-    random_search = RandomizedSearchCV(
-        estimator=best_base_model,
-        param_distributions=grid,
-        n_iter=10,        # Number of random combinations to try
-        scoring='roc_auc',# Optimize for ROC-AUC
-        cv=3,             # 3-fold cross-validation
+    model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=20,
         random_state=42,
-        n_jobs=-1         # Use all available CPU cores
+        n_jobs=1
     )
-
-    # 5. Train the tuned model
-    random_search.fit(X_train, y_train)
-    tuned_model = random_search.best_estimator_
     
-    print(f"✅ Tuning Complete! Best Parameters: {random_search.best_params_}")
+    model.fit(X_train, y_train)
+    
+    # 3. Quick Evaluation
+    preds = model.predict(X_test)
+    probs = model.predict_proba(X_test)
+    metrics = calculate_metrics(y_test, preds, probs, model_name="RandomForest")
+    
+    print("\n" + "=" * 50)
+    print(f"Final Model Metrics (Test Set):")
+    print(f"Accuracy: {metrics['Accuracy']}")
+    print(f"ROC-AUC:  {metrics['ROC-AUC']}")
+    print("=" * 50)
 
-    # 6. Save the TUNED Model
+    # 4. Save best model
     save_path = "models/best_model.pkl"
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    joblib.dump(tuned_model, save_path)
-    
-    print("-" * 75)
-    print(f"DONE! Tuned {best_model_name} saved to {save_path}")
-    
-    
+    joblib.dump(model, save_path)
+    print(f"✔ Success! Model saved to {save_path}")
 
 if __name__ == "__main__":
-    # Point this to the NEW file in the processed folder
     run_pipeline('data/processed/processed_data.csv')

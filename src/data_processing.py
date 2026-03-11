@@ -53,11 +53,9 @@ def handle_missing_values(df):
 
 def engineer_features(df):
     """
-    Generates new mathematical features based on SHAP XAI correlations.
-    BMI = Weight (kg) / Height (m)^2
+    (Deprecated) Generates new mathematical features based on SHAP.
+    We removed BMI because it was too strongly correlated and dominated the ML model.
     """
-    if 'Weight' in df.columns and 'Height' in df.columns:
-        df['BMI'] = df['Weight'] / (df['Height'] ** 2)
     return df
 
 def prepare_features(df):
