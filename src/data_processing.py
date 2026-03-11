@@ -1,6 +1,16 @@
 import pandas as pd
 import os
 
+# TM4 TODO: Implement these functions
+def optimize_memory(df):
+    pass
+
+def encode_categorical(df):
+    pass
+
+def handle_missing_values(df):
+    pass
+
 def process_data(input_path, output_filename="processed_data.csv"):
     # 1. Load the raw data
     df = pd.read_csv(input_path)
