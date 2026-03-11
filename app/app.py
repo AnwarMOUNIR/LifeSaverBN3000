@@ -223,10 +223,15 @@ else:
                 sv = raw_ind[prediction][0]
                 bv = explainer.expected_value[prediction]
             else:
-                sv = raw_ind[0]
-                bv = (explainer.expected_value[0]
-                      if hasattr(explainer.expected_value, "__len__")
-                      else explainer.expected_value)
+                # XGBoost Multiclass returns (samples, features, classes) -> e.g. (1, 24, 7)
+                if len(getattr(raw_ind, "shape", [])) == 3:
+                    sv = raw_ind[0, :, prediction]
+                    bv = explainer.expected_value[prediction]
+                else:
+                    sv = raw_ind[0]
+                    bv = (explainer.expected_value[0]
+                          if hasattr(explainer.expected_value, "__len__")
+                          else explainer.expected_value)
 
             ind_exp = shap.Explanation(
                 values=sv,
