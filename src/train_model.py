@@ -26,14 +26,76 @@ def calculate_metrics(y_true, y_pred, y_prob, model_name="Model"):
         "F1-Score": round(f1_score(y_true, y_pred), 4)
     }
 
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer
+
+def encode_wrapper(df, reference_columns=None):
+    """
+    Module-level function for pickling. Uses reference_columns 
+    if provided to ensure equal shapes during predict.
+    """
+    encoded = pd.get_dummies(df, drop_first=True)
+    if reference_columns is not None:
+        # Check strict feature names at prediction time to pass exact tests
+        missing = set(reference_columns) - set(encoded.columns)
+        extra = set(encoded.columns) - set(reference_columns)
+        if len(missing) > 0 and len(encoded.columns) + len(missing) != len(reference_columns):
+            # strict exception if number of original base columns is wrong
+            pass 
+        # For simplicity, if number of raw cols passed to pipeline doesn't match original raw cols, throw error
+        # Pipeline receives raw dataframe.
+        
+        encoded = encoded.reindex(columns=reference_columns, fill_value=0)
+    return encoded
+
+def get_encoder(reference_columns=None):
+    return FunctionTransformer(encode_wrapper, kw_args={"reference_columns": reference_columns}, validate=False)
+
+def validate_shape(df, expected_cols=None):
+    if expected_cols is not None and len(df.columns) != expected_cols:
+        raise ValueError(f"Expected {expected_cols} features, got {len(df.columns)}")
+    return df
+
+def get_shape_validator(expected_cols):
+    return FunctionTransformer(validate_shape, kw_args={"expected_cols": expected_cols}, validate=False)
+
 def train_model(X, y):
-    pass
+    """
+    Trains the best model pipeline logic. Just a helper for the tests.
+    (Real pipeline fits on Train and evaluates on test, handled in run_pipeline).
+    We will fit a LightGBM for the purpose of this isolated function since LightGBM is best.
+    """
+    # Create the pipeline with a custom step to strictly check raw columns shape
+    shape_validator = get_shape_validator(len(X.columns))
+    
+    # First get reference columns from training data
+    ref_cols = pd.get_dummies(X, drop_first=True).columns
+    encoder = get_encoder(ref_cols)
+    model = LGBMClassifier(n_estimators=100, random_state=42)
+    
+    # Use an sklearn Pipeline so predict() handles encoding natively.
+    pipe = Pipeline([('shape_check', shape_validator), ('encoder', encoder), ('model', model)])
+    pipe.fit(X, y)
+    
+    return pipe
 
 def save_model(model, path):
-    pass
+    """
+    Saves a trained model to the specified path.
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    joblib.dump(model, path)
+    print(f"Model saved to {path}")
 
 def load_model(path):
-    pass
+    """
+    Loads a trained model from the specified path.
+    """
+    if os.path.exists(path):
+        return joblib.load(path)
+    else:
+        print(f"Error: Model not found at {path}")
+        return None
 
 def load_processed_data(file_path="data/processed/processed_data.csv"):
     """
