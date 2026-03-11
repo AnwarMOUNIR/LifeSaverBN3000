@@ -65,3 +65,4 @@ pytest
 
 ## 👥 Team & Collaboration
 This project is built collaboratively by a cross-functional 6-member team following Agile methodologies managed via Jira, comprising DevOps, Data Engineering, ML, XAI, Frontend UI/UX, and QA Testing. For more details on team organization and responsibilities, please refer to the `ignored/team_organization.md` resource file.
+
