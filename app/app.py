@@ -248,24 +248,36 @@ st.markdown("---")
 # ════════════════════════════════════════════════════════
 # Global Explainability
 # ════════════════════════════════════════════════════════
-st.subheader("Global Feature Importance — SHAP Summary Plot")
-st.markdown(
-    "Each dot represents one training sample. Features are ranked by their "
-    "average impact on the model output. **Red** = high feature value, "
-    "**Blue** = low feature value."
-)
-
+st.subheader("Global Feature Importance")
 if model is None or feature_cols is None:
     st.warning("Model or processed data not found. Please train the model first.")
 else:
     with st.spinner("Computing global SHAP values (this may take a moment)…"):
         global_shap_vals, X_sample = get_global_shap_values()
 
-    fig_global, ax_global = plt.subplots(figsize=(10, 6))
-    shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
-    fig_global = plt.gcf()
-    st.pyplot(fig_global, bbox_inches="tight")
-    plt.close("all")
+    tab1, tab2 = st.tabs(["Feature Ranking (Simple)", "Detailed Impact (Summary Plot)"])
+    
+    with tab1:
+        st.markdown(
+            "This definitive ranking displays the average magnitude of influence each parameter has. "
+            "Longer bars mean the parameter heavily dictates the obesity risk prediction across all patients."
+        )
+        fig_bar, ax_bar = plt.subplots(figsize=(10, 6))
+        shap.summary_plot(global_shap_vals, X_sample, plot_type="bar", plot_size=(10, 6), max_display=12, show=False)
+        fig_bar = plt.gcf()
+        st.pyplot(fig_bar, bbox_inches="tight")
+        plt.close("all")
+
+    with tab2:
+        st.markdown(
+            "Each dot represents one training sample. Features are ranked vertically by importance. "
+            "**Red** = high feature value, **Blue** = low feature value."
+        )
+        fig_global, ax_global = plt.subplots(figsize=(10, 6))
+        shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
+        fig_global = plt.gcf()
+        st.pyplot(fig_global, bbox_inches="tight")
+        plt.close("all")
 
     st.caption(
         f"Summary computed on a random sample of {len(X_sample)} training rows. "
