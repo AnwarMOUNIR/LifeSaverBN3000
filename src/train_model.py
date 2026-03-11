@@ -26,15 +26,6 @@ def calculate_metrics(y_true, y_pred, y_prob, model_name="Model"):
         "F1-Score": round(f1_score(y_true, y_pred), 4)
     }
 
-def train_model(X, y):
-    pass
-
-def save_model(model, path):
-    pass
-
-def load_model(path):
-    pass
-
 def load_processed_data(file_path="data/processed/processed_data.csv"):
     """
     Standard function to load the dataset after it has been cleaned.

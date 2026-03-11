@@ -11,9 +11,6 @@ def encode_categorical(df):
 def handle_missing_values(df):
     pass
 
-def prepare_features(df):
-    pass
-
 def process_data(input_path, output_filename="processed_data.csv"):
     # 1. Load the raw data
     df = pd.read_csv(input_path)
