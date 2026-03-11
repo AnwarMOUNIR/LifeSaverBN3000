@@ -15,15 +15,20 @@ from catboost import CatBoostClassifier
 
 def calculate_metrics(y_true, y_pred, y_prob, model_name="Model"):
     """
-    Calculates standard binary classification metrics and returns them as a dictionary.
+    Calculates standard binary/multiclass classification metrics and returns them.
     """
+    try:
+        auc = roc_auc_score(y_true, y_prob, multi_class='ovr')
+    except Exception:
+        auc = 0.0
+        
     return {
         "Model": model_name,
-        "ROC-AUC": round(roc_auc_score(y_true, y_prob), 4),
+        "ROC-AUC": round(auc, 4),
         "Accuracy": round(accuracy_score(y_true, y_pred), 4),
-        "Precision": round(precision_score(y_true, y_pred), 4),
-        "Recall": round(recall_score(y_true, y_pred), 4),
-        "F1-Score": round(f1_score(y_true, y_pred), 4)
+        "Precision": round(precision_score(y_true, y_pred, average='weighted', zero_division=0), 4),
+        "Recall": round(recall_score(y_true, y_pred, average='weighted', zero_division=0), 4),
+        "F1-Score": round(f1_score(y_true, y_pred, average='weighted', zero_division=0), 4)
     }
 
 from sklearn.pipeline import Pipeline
@@ -109,6 +114,8 @@ def load_processed_data(file_path="data/processed/processed_data.csv"):
         print(f"Error: The file at {file_path} does not exist.")
         return None
     
+from sklearn.preprocessing import LabelEncoder
+
 def run_pipeline(processed_data_path):
     # 1. Load the PREPROCESSED Data
     if not os.path.exists(processed_data_path):
@@ -117,27 +124,30 @@ def run_pipeline(processed_data_path):
     
     df = pd.read_csv(processed_data_path)
 
-    # --- Inside your run_pipeline function ---
-
     # 1. Separate Features (X) and Target (y)
     X = df.iloc[:, :-1] 
-    y = df.iloc[:, -1]
+    y_raw = df.iloc[:, -1]
+    
+    le = LabelEncoder()
+    y = le.fit_transform(y_raw)
+    
+    # Save label encoder for frontend to decode predictions
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(le, 'models/label_encoder.pkl')
 
     # 2. ADD THE SPLIT HERE
-    # test_size=0.2 means 20% for testing, leaving 80% for training
     X_train, X_test, y_train, y_test = train_test_split(
-    X, 
-    y, 
-    test_size=0.2, 
-    random_state=42
+        X, 
+        y, 
+        test_size=0.2, 
+        random_state=42
     )
 
-    # 3. Then proceed to define and train your models...
     # 2. Define the 4 Models
     models = {
         "Random Forest": RandomForestClassifier(random_state=42),
-        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
-        "LightGBM": LGBMClassifier(),
+        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='mlogloss'),
+        "LightGBM": LGBMClassifier(verbose=-1),
         "CatBoost": CatBoostClassifier(verbose=0)
     }
 
@@ -150,15 +160,15 @@ def run_pipeline(processed_data_path):
     for name, model in models.items():
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
-        probs = model.predict_proba(X_test)[:, 1]
+        probs = model.predict_proba(X_test)  # Full matrix for ovr auc
 
         # --- NEW CODE FOR YOUR TASK ---
         if name == "Random Forest":
-            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")    
-        elif name == "XGBoost":  # <-- ADD THIS PART!
-            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")         
-        elif name == "LightGBM":  # <-- ADDED FOR LIGHTGBM
-            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
+            print(f"\n[LOG] {name} Predictions (first 5): {preds[:5]}")    
+        elif name == "XGBoost": 
+            pass # we only need one log output 
+        elif name == "LightGBM":
+            pass
         
         metrics = calculate_metrics(y_test, preds, probs, model_name=name)
         

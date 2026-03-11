@@ -109,7 +109,7 @@ input_data = pd.DataFrame({
     "family_history_with_overweight": [family_history], "FAVC": [favc],
     "FCVC": [fcvc], "NCP": [ncp], "CAEC": [caec], "SMOKE": [smoke],
     "CH2O": [ch2o], "SCC": [scc], "FAF": [faf], "TUE": [tue],
-    "CALC": [calc], "MTRANS": [mtrans],
+    "CALC": [calc], "MTRANS": [mtrans], "BMI": [bmi]
 })
 
 
@@ -124,6 +124,7 @@ def encode_input(input_df, feature_cols):
         "Age": input_df["Age"].values[0],
         "Height": input_df["Height"].values[0],
         "Weight": input_df["Weight"].values[0],
+        "BMI": input_df["BMI"].values[0],
         "FCVC": input_df["FCVC"].values[0],
         "NCP": input_df["NCP"].values[0],
         "CH2O": input_df["CH2O"].values[0],
@@ -173,16 +174,25 @@ else:
     if st.button("Run Prediction", type="primary"):
         encoded_input = encode_input(input_data, feature_cols)
         prediction  = model.predict(encoded_input)[0]
-        probability = model.predict_proba(encoded_input)[0][1]
+        # Get the probability of the predicted class (it's multiclass!)
+        probability = model.predict_proba(encoded_input)[0][prediction]
+        
+        # Load the Label Encoder to get the semantic string mapping
+        le_path = os.path.join(REPO_ROOT, "models", "label_encoder.pkl")
+        if os.path.exists(le_path):
+            le = joblib.load(le_path)
+            prediction_label = le.inverse_transform([prediction])[0]
+        else:
+            prediction_label = str(prediction)
 
         # Store in session state so the Explainability tab can access them
         st.session_state["encoded_input"] = encoded_input
-        st.session_state["prediction"]    = prediction
+        st.session_state["prediction_label"] = prediction_label
         st.session_state["probability"]   = probability
 
     # Show result if we have one (persists across reruns)
-    if "prediction" in st.session_state:
-        prediction  = st.session_state["prediction"]
+    if "prediction_label" in st.session_state:
+        prediction_label  = st.session_state["prediction_label"]
         probability = st.session_state["probability"]
         encoded_input = st.session_state["encoded_input"]
 
@@ -190,17 +200,17 @@ else:
         with col1:
             st.metric("BMI", f"{bmi:.2f}")
         with col2:
-            st.metric("Model Risk Score", f"{probability:.1%}")
+            st.metric("Model Confidence", f"{probability:.1%}")
 
-        if prediction == 1:
-            st.error(
-                f"**Result: Elevated Risk (Overweight Level II)**  \n"
-                f"The model assigns a {probability:.1%} probability of Overweight Level II."
+        if "Normal_Weight" in prediction_label or "Insufficient" in prediction_label:
+            st.success(
+                f"**Result: {prediction_label.replace('_', ' ')}**  \n"
+                f"The model assigns a {probability:.1%} confidence."
             )
         else:
-            st.success(
-                f"**Result: Lower Risk**  \n"
-                f"The model assigns a {probability:.1%} probability of Overweight Level II."
+            st.error(
+                f"**Result: {prediction_label.replace('_', ' ')}**  \n"
+                f"The model assigns a {probability:.1%} confidence."
             )
 
         # ── Individual SHAP Waterfall Plot ──
