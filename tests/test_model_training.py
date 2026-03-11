@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 """
 Tests for model training functions.
 This file contains tests to verify that model training, saving, and loading work correctly.
@@ -552,5 +551,4 @@ def test_model_minimum_accuracy(sample_training_data):
     min_accuracy = 0.3  # Low because we have small sample data
     assert accuracy >= min_accuracy, f"Accuracy {accuracy:.2f} is below minimum {min_accuracy}"
     
->>>>>>> 7b4cf87818abb3a6aa63d58d2ae75914174b6df9
     print(f"✅ Model accuracy: {accuracy:.2f}")
