@@ -38,58 +38,26 @@ This file tracks the prompts you used to build `LifeSaverBN3000`, the AI's respo
 
 ### TM3: Machine Learning Engineer
 **Objective:** [e.g., GridSearch on Random Forest]
-- **Initial Prompt:**
-  > _[Insert Prompt]_
-- **AI Response Summary:**
-  > _[Insert Summary]_
-- **Refinement / Follow-up Prompt:**
-  > _[Insert Refinement]_
-- **Final Outcome/Code Used:**
-  > _[Insert Outcome]_
-- **Reflection:**
-  > _[Explain why the prompt needed refinement]_
+- **Initial Prompt:** 
+  ...
 
 ---
 
 ### TM4: Explainable AI & Optimization Engineer
 **Objective:** [e.g., Generating SHAP plots from XGBoost]
-- **Initial Prompt:**
-  > _[Insert Prompt]_
-- **AI Response Summary:**
-  > _[Insert Summary]_
-- **Refinement / Follow-up Prompt:**
-  > _[Insert Refinement]_
-- **Final Outcome/Code Used:**
-  > _[Insert Outcome]_
-- **Reflection:**
-  > _[Explain why the prompt needed refinement]_
+- **Initial Prompt:** 
+  ...
 
 ---
 
 ### TM5: Frontend UI/UX Engineer
 **Objective:** [e.g., Connecting Model predict to Streamlit button]
-- **Initial Prompt:**
-  > _[Insert Prompt]_
-- **AI Response Summary:**
-  > _[Insert Summary]_
-- **Refinement / Follow-up Prompt:**
-  > _[Insert Refinement]_
-- **Final Outcome/Code Used:**
-  > _[Insert Outcome]_
-- **Reflection:**
-  > _[Explain why the prompt needed refinement]_
+- **Initial Prompt:** 
+  ...
 
 ---
 
 ### TM6: QA & Testing Engineer
 **Objective:** [e.g., Writing pytest scripts for model loading]
-- **Initial Prompt:**
-  > _[Insert Prompt]_
-- **AI Response Summary:**
-  > _[Insert Summary]_
-- **Refinement / Follow-up Prompt:**
-  > _[Insert Refinement]_
-- **Final Outcome/Code Used:**
-  > _[Insert Outcome]_
-- **Reflection:**
-  > _[Explain why the prompt needed refinement]_
+- **Initial Prompt:** 
+  ...
