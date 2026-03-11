@@ -20,25 +20,21 @@ MODEL_PATH = os.path.join(REPO_ROOT, "models", "best_model.pkl")
 PROCESSED_DATA_PATH = os.path.join(REPO_ROOT, "data", "processed", "processed_data.csv")
 
 # ── Load Model, Feature Columns & SHAP Explainer ──
-@st.cache_resource
 def load_model():
     if os.path.exists(MODEL_PATH):
         return joblib.load(MODEL_PATH)
     return None
 
-@st.cache_data
 def get_feature_columns():
     if os.path.exists(PROCESSED_DATA_PATH):
         df = pd.read_csv(PROCESSED_DATA_PATH)
         return df.columns[:-1].tolist()
     return None
 
-@st.cache_resource
 def get_shap_explainer(_model):
     """Build a TreeExplainer (works for RF, XGBoost, LightGBM, CatBoost)."""
     return shap.TreeExplainer(_model)
 
-@st.cache_data
 def get_global_shap_values():
     """
     Compute SHAP values on a sample of the training data for the global
@@ -108,7 +104,7 @@ input_data = pd.DataFrame({
     "family_history_with_overweight": [family_history], "FAVC": [favc],
     "FCVC": [fcvc], "NCP": [ncp], "CAEC": [caec], "SMOKE": [smoke],
     "CH2O": [ch2o], "SCC": [scc], "FAF": [faf], "TUE": [tue],
-    "CALC": [calc], "MTRANS": [mtrans], "BMI": [bmi]
+    "CALC": [calc], "MTRANS": [mtrans]
 })
 
 
@@ -123,7 +119,6 @@ def encode_input(input_df, feature_cols):
         "Age": input_df["Age"].values[0],
         "Height": input_df["Height"].values[0],
         "Weight": input_df["Weight"].values[0],
-        "BMI": input_df["BMI"].values[0],
         "FCVC": input_df["FCVC"].values[0],
         "NCP": input_df["NCP"].values[0],
         "CH2O": input_df["CH2O"].values[0],
@@ -195,11 +190,7 @@ else:
         probability = st.session_state["probability"]
         encoded_input = st.session_state["encoded_input"]
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("BMI", f"{bmi:.2f}")
-        with col2:
-            st.metric("Model Confidence", f"{probability:.1%}")
+        st.metric("Model Confidence", f"{probability:.1%}")
 
         if "Normal_Weight" in prediction_label or "Insufficient" in prediction_label:
             st.success(
@@ -227,10 +218,15 @@ else:
                 sv = raw_ind[prediction][0]
                 bv = explainer.expected_value[prediction]
             else:
-                sv = raw_ind[0]
-                bv = (explainer.expected_value[0]
-                      if hasattr(explainer.expected_value, "__len__")
-                      else explainer.expected_value)
+                # XGBoost Multiclass returns (samples, features, classes) -> e.g. (1, 24, 7)
+                if len(getattr(raw_ind, "shape", [])) == 3:
+                    sv = raw_ind[0, :, prediction]
+                    bv = explainer.expected_value[prediction]
+                else:
+                    sv = raw_ind[0]
+                    bv = (explainer.expected_value[0]
+                          if hasattr(explainer.expected_value, "__len__")
+                          else explainer.expected_value)
 
             ind_exp = shap.Explanation(
                 values=sv,
@@ -252,24 +248,36 @@ st.markdown("---")
 # ════════════════════════════════════════════════════════
 # Global Explainability
 # ════════════════════════════════════════════════════════
-st.subheader("Global Feature Importance — SHAP Summary Plot")
-st.markdown(
-    "Each dot represents one training sample. Features are ranked by their "
-    "average impact on the model output. **Red** = high feature value, "
-    "**Blue** = low feature value."
-)
-
+st.subheader("Global Feature Importance")
 if model is None or feature_cols is None:
     st.warning("Model or processed data not found. Please train the model first.")
 else:
     with st.spinner("Computing global SHAP values (this may take a moment)…"):
         global_shap_vals, X_sample = get_global_shap_values()
 
-    fig_global, ax_global = plt.subplots(figsize=(10, 6))
-    shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
-    fig_global = plt.gcf()
-    st.pyplot(fig_global, bbox_inches="tight")
-    plt.close("all")
+    tab1, tab2 = st.tabs(["Feature Ranking (Simple)", "Detailed Impact (Summary Plot)"])
+    
+    with tab1:
+        st.markdown(
+            "This definitive ranking displays the average magnitude of influence each parameter has. "
+            "Longer bars mean the parameter heavily dictates the obesity risk prediction across all patients."
+        )
+        fig_bar, ax_bar = plt.subplots(figsize=(10, 6))
+        shap.summary_plot(global_shap_vals, X_sample, plot_type="bar", plot_size=(10, 6), max_display=12, show=False)
+        fig_bar = plt.gcf()
+        st.pyplot(fig_bar, bbox_inches="tight")
+        plt.close("all")
+
+    with tab2:
+        st.markdown(
+            "Each dot represents one training sample. Features are ranked vertically by importance. "
+            "**Red** = high feature value, **Blue** = low feature value."
+        )
+        fig_global, ax_global = plt.subplots(figsize=(10, 6))
+        shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
+        fig_global = plt.gcf()
+        st.pyplot(fig_global, bbox_inches="tight")
+        plt.close("all")
 
     st.caption(
         f"Summary computed on a random sample of {len(X_sample)} training rows. "
