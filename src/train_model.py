@@ -4,6 +4,8 @@ import joblib
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+
 
 # Models
 from sklearn.ensemble import RandomForestClassifier
@@ -29,13 +31,22 @@ def run_pipeline(processed_data_path):
     
     df = pd.read_csv(processed_data_path)
 
-    # Separate Features and Target
-    # (Since the data is already cleaned, we just split it)
-    X = df.iloc[:, :-1] 
-    y = df.iloc[:, -1]  
+    # --- Inside your run_pipeline function ---
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
+    # 1. Separate Features (X) and Target (y)
+    X = df.iloc[:, :-1] 
+    y = df.iloc[:, -1]
+
+    # 2. ADD THE SPLIT HERE
+    # test_size=0.2 means 20% for testing, leaving 80% for training
+    X_train, X_test, y_train, y_test = train_test_split(
+    X, 
+    y, 
+    test_size=0.2, 
+    random_state=42
+    )
+
+    # 3. Then proceed to define and train your models...
     # 2. Define the 4 Models
     models = {
         "Random Forest": RandomForestClassifier(random_state=42),
@@ -54,6 +65,16 @@ def run_pipeline(processed_data_path):
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
         probs = model.predict_proba(X_test)[:, 1]
+
+        # --- NEW CODE FOR YOUR TASK ---
+        if name == "Random Forest":
+            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
+            
+        elif name == "XGBoost":  # <-- ADD THIS PART!
+            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
+            
+        elif name == "LightGBM":  # <-- ADDED FOR LIGHTGBM
+            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
 
         metrics = {
             "Model": name,

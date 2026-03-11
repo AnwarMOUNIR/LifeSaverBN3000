@@ -1,4 +1,3 @@
-import pandas as pd
 import os
 
 def process_data(input_path, output_filename="processed_data.csv"):
