@@ -27,3 +27,14 @@ plt.show()
 df['family_history_with_overweight'].value_counts().plot(kind='bar')
 plt.title("Family History of Overweight")
 plt.show()
+
+# 15 Correlation heatmap
+numeric_df = df.select_dtypes(include=['float64', 'int64'])
+
+corr = numeric_df.corr()
+
+plt.figure(figsize=(12,10))
+sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f")
+
+plt.title("Correlation Heatmap")
+plt.show()
