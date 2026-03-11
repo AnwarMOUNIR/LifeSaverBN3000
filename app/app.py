@@ -50,9 +50,8 @@ def get_global_shap_values():
     X_sample = X.sample(min(300, len(X)), random_state=42)
     explainer = get_shap_explainer(load_model())
     raw = explainer.shap_values(X_sample)
-    # RandomForest returns a list [class0, class1]; others return a single array
-    if isinstance(raw, list):
-        return raw[1], X_sample
+    
+    # SHAP will naturally render a stacked bar plot for lists (multiclass)
     return raw, X_sample
 
 model = load_model()
@@ -224,8 +223,9 @@ else:
             raw_ind   = explainer.shap_values(encoded_input)
 
             if isinstance(raw_ind, list):
-                sv = raw_ind[1][0]
-                bv = explainer.expected_value[1]
+                # Use the specific predicted class index
+                sv = raw_ind[prediction][0]
+                bv = explainer.expected_value[prediction]
             else:
                 sv = raw_ind[0]
                 bv = (explainer.expected_value[0]
@@ -239,8 +239,8 @@ else:
                 feature_names=list(encoded_input.columns),
             )
 
-            fig_ind, ax_ind = plt.subplots()
-            shap.plots.waterfall(ind_exp, show=False)
+            fig_ind, ax_ind = plt.subplots(figsize=(10, 5))
+            shap.plots.waterfall(ind_exp, max_display=10, show=False)
             fig_ind = plt.gcf()
             st.pyplot(fig_ind, bbox_inches="tight")
             plt.close("all")
@@ -265,8 +265,8 @@ else:
     with st.spinner("Computing global SHAP values (this may take a moment)…"):
         global_shap_vals, X_sample = get_global_shap_values()
 
-    fig_global, _ = plt.subplots()
-    shap.summary_plot(global_shap_vals, X_sample, show=False)
+    fig_global, ax_global = plt.subplots(figsize=(10, 6))
+    shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
     fig_global = plt.gcf()
     st.pyplot(fig_global, bbox_inches="tight")
     plt.close("all")

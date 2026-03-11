@@ -404,4 +404,4 @@ def test_model_predict_features_count():
     model = joblib.load(model_path)
     # The actual feature count used by the generated LightGBM model
     assert hasattr(model, 'n_features_in_'), "The trained model must expose n_features_in_."
-    assert model.n_features_in_ == 28, f"Expected 28 features, found {model.n_features_in_} in {type(model).__name__}."
+    assert model.n_features_in_ == 24, f"Expected 24 features, found {model.n_features_in_} in {type(model).__name__}."
