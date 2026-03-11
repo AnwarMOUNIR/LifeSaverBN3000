@@ -11,12 +11,6 @@
 - **Interactive Web Interface:** A Streamlit frontend providing seamless physician data input alongside real-time predictions and visual XAI insights.
 - **Robust QA & Automation:** Comprehensive automated testing with `pytest` integrated within a full CI/CD GitHub Actions pipeline.
 
-## 📊 Project Insights (TM1 DevOps/PM Report)
-- **Dataset Balance:** _[TM1 Placeholder: Awaiting EDA completion from TM2]_
-- **Best Model:** `XGBClassifier` achieving an optimal balance of robust ROC-AUC performance and accuracy compared to the other generated ensemble models. Pipeline assets saved in `models/best_model.pkl`.
-- **SHAP Insights:** _[TM1 Placeholder: Awaiting Global SHAP plots from TM4]_
-- **Prompt Engineering Insights:** Proper prompt context formulation heavily impacts the utility of LLM outputs. Specifying input variables and environment boundaries resulted in zero-shot workable CI/CD configurations compared to vague, open-ended "write me a pipeline" requests.
-
 ## 📂 Project Structure
 ```text
 LifeSaverBN3000/
