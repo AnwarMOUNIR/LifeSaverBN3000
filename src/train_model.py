@@ -12,6 +12,20 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from catboost import CatBoostClassifier
+
+def calculate_metrics(y_true, y_pred, y_prob, model_name="Model"):
+    """
+    Calculates standard binary classification metrics and returns them as a dictionary.
+    """
+    return {
+        "Model": model_name,
+        "ROC-AUC": round(roc_auc_score(y_true, y_prob), 4),
+        "Accuracy": round(accuracy_score(y_true, y_pred), 4),
+        "Precision": round(precision_score(y_true, y_pred), 4),
+        "Recall": round(recall_score(y_true, y_pred), 4),
+        "F1-Score": round(f1_score(y_true, y_pred), 4)
+    }
+
 def load_processed_data(file_path="data/processed/processed_data.csv"):
     """
     Standard function to load the dataset after it has been cleaned.
@@ -23,6 +37,7 @@ def load_processed_data(file_path="data/processed/processed_data.csv"):
     except FileNotFoundError:
         print(f"Error: The file at {file_path} does not exist.")
         return None
+    
 def run_pipeline(processed_data_path):
     # 1. Load the PREPROCESSED Data
     if not os.path.exists(processed_data_path):
@@ -68,19 +83,14 @@ def run_pipeline(processed_data_path):
 
         # --- NEW CODE FOR YOUR TASK ---
         if name == "Random Forest":
-            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
-            
+            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")    
         elif name == "XGBoost":  # <-- ADD THIS PART!
+            print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")         
+        elif name == "LightGBM":  # <-- ADDED FOR LIGHTGBM
             print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
-
-        metrics = {
-            "Model": name,
-            "ROC-AUC": round(roc_auc_score(y_test, probs), 4),
-            "Accuracy": round(accuracy_score(y_test, preds), 4),
-            "Precision": round(precision_score(y_test, preds), 4),
-            "Recall": round(recall_score(y_test, preds), 4),
-            "F1-Score": round(f1_score(y_test, preds), 4)
-        }
+        
+        metrics = calculate_metrics(y_test, preds, probs, model_name=name)
+        
         results.append(metrics)
         
         print(f"{name:<20} | {metrics['ROC-AUC']:<8} | {metrics['Accuracy']:<8} | "
