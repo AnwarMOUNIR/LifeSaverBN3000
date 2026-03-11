@@ -36,13 +36,10 @@ def encode_categorical(df):
 
 def handle_missing_values(df):
     """
-    Handles missing values by imputing numeric with median and categorical with mode.
+    Checks for missing values. As per UCI documentation, there are none, so we just verify and return.
     """
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].fillna(df[col].mode()[0])
-        else:
-            df[col] = df[col].fillna(df[col].median())
+    if df.isnull().sum().sum() > 0:
+        print("Warning: Missing values found, but not expected based on dataset info.")
     return df
 
 def prepare_features(df):
