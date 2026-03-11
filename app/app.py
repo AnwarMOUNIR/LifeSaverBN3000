@@ -20,26 +20,22 @@ MODEL_PATH = os.path.join(REPO_ROOT, "models", "best_model.pkl")
 PROCESSED_DATA_PATH = os.path.join(REPO_ROOT, "data", "processed", "processed_data.csv")
 
 # ── Load Model, Feature Columns & SHAP Explainer ──
-@st.cache_resource
 def load_model():
     if os.path.exists(MODEL_PATH):
         return joblib.load(MODEL_PATH)
     return None
 
-@st.cache_data
 def get_feature_columns():
     if os.path.exists(PROCESSED_DATA_PATH):
         df = pd.read_csv(PROCESSED_DATA_PATH)
         return df.columns[:-1].tolist()
     return None
 
-@st.cache_resource
 def get_shap_explainer(_model):
     """Build a TreeExplainer (works for RF, XGBoost, LightGBM, CatBoost)."""
     return shap.TreeExplainer(_model)
 
-@st.cache_data
-def get_global_shap_values(cache_bust=1):
+def get_global_shap_values():
     """
     Compute SHAP values on a sample of the training data for the global
     summary plot. Results are cached so this only runs once.
@@ -263,7 +259,7 @@ if model is None or feature_cols is None:
     st.warning("Model or processed data not found. Please train the model first.")
 else:
     with st.spinner("Computing global SHAP values (this may take a moment)…"):
-        global_shap_vals, X_sample = get_global_shap_values(cache_bust=2)
+        global_shap_vals, X_sample = get_global_shap_values()
 
     fig_global, ax_global = plt.subplots(figsize=(10, 6))
     shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
