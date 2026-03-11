@@ -39,7 +39,7 @@ def get_shap_explainer(_model):
     return shap.TreeExplainer(_model)
 
 @st.cache_data
-def get_global_shap_values():
+def get_global_shap_values(cache_bust=1):
     """
     Compute SHAP values on a sample of the training data for the global
     summary plot. Results are cached so this only runs once.
@@ -263,7 +263,7 @@ if model is None or feature_cols is None:
     st.warning("Model or processed data not found. Please train the model first.")
 else:
     with st.spinner("Computing global SHAP values (this may take a moment)…"):
-        global_shap_vals, X_sample = get_global_shap_values()
+        global_shap_vals, X_sample = get_global_shap_values(cache_bust=2)
 
     fig_global, ax_global = plt.subplots(figsize=(10, 6))
     shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
