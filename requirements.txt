@@ -1,0 +1,17 @@
+pandas
+numpy
+scikit-learn
+xgboost
+lightgbm
+catboost
+joblib
+matplotlib
+
+# Testing
+pytest
+
+# Streamlit frontend UI
+streamlit
+
+# Explainable AI (XAI)
+shap>=0.45.0  # SHAP for model explainability (project requirement)
