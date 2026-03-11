@@ -50,9 +50,8 @@ def get_global_shap_values():
     X_sample = X.sample(min(300, len(X)), random_state=42)
     explainer = get_shap_explainer(load_model())
     raw = explainer.shap_values(X_sample)
-    # RandomForest returns a list [class0, class1]; others return a single array
-    if isinstance(raw, list):
-        return raw[1], X_sample
+    
+    # SHAP will naturally render a stacked bar plot for lists (multiclass)
     return raw, X_sample
 
 model = load_model()
@@ -109,7 +108,7 @@ input_data = pd.DataFrame({
     "family_history_with_overweight": [family_history], "FAVC": [favc],
     "FCVC": [fcvc], "NCP": [ncp], "CAEC": [caec], "SMOKE": [smoke],
     "CH2O": [ch2o], "SCC": [scc], "FAF": [faf], "TUE": [tue],
-    "CALC": [calc], "MTRANS": [mtrans],
+    "CALC": [calc], "MTRANS": [mtrans], "BMI": [bmi]
 })
 
 
@@ -124,6 +123,7 @@ def encode_input(input_df, feature_cols):
         "Age": input_df["Age"].values[0],
         "Height": input_df["Height"].values[0],
         "Weight": input_df["Weight"].values[0],
+        "BMI": input_df["BMI"].values[0],
         "FCVC": input_df["FCVC"].values[0],
         "NCP": input_df["NCP"].values[0],
         "CH2O": input_df["CH2O"].values[0],
@@ -154,118 +154,124 @@ def encode_input(input_df, feature_cols):
     return encoded
 
 
-# ── Tabs ──
-tab_pred, tab_xai = st.tabs(["Prediction", "Explainability"])
-
 # ════════════════════════════════════════════════════════
-# TAB 1 — Prediction
+# Main Page Content
 # ════════════════════════════════════════════════════════
-with tab_pred:
-    st.subheader("Input Data Summary")
-    st.dataframe(input_data)
 
-    st.subheader("Obesity Risk Prediction")
+st.subheader("Input Data Summary")
+st.dataframe(input_data)
 
-    if model is None:
-        st.warning("No trained model found at `models/best_model.pkl`. "
-                   "Please run `src/train_model.py` first.")
-    elif feature_cols is None:
-        st.warning("No processed data found at `data/processed/processed_data.csv`. "
-                   "Please run `src/data_processing.py` first.")
-    else:
-        if st.button("Run Prediction", type="primary"):
-            encoded_input = encode_input(input_data, feature_cols)
-            prediction  = model.predict(encoded_input)[0]
-            probability = model.predict_proba(encoded_input)[0][1]
+st.subheader("Obesity Risk Prediction")
 
-            # Store in session state so the Explainability tab can access them
-            st.session_state["encoded_input"] = encoded_input
-            st.session_state["prediction"]    = prediction
-            st.session_state["probability"]   = probability
+if model is None:
+    st.warning("No trained model found at `models/best_model.pkl`. "
+               "Please run `src/train_model.py` first.")
+elif feature_cols is None:
+    st.warning("No processed data found at `data/processed/processed_data.csv`. "
+               "Please run `src/data_processing.py` first.")
+else:
+    if st.button("Run Prediction", type="primary"):
+        encoded_input = encode_input(input_data, feature_cols)
+        prediction  = model.predict(encoded_input)[0]
+        # Get the probability of the predicted class (it's multiclass!)
+        probability = model.predict_proba(encoded_input)[0][prediction]
+        
+        # Load the Label Encoder to get the semantic string mapping
+        le_path = os.path.join(REPO_ROOT, "models", "label_encoder.pkl")
+        if os.path.exists(le_path):
+            le = joblib.load(le_path)
+            prediction_label = le.inverse_transform([prediction])[0]
+        else:
+            prediction_label = str(prediction)
 
-        # Show result if we have one (persists across reruns)
-        if "prediction" in st.session_state:
-            prediction  = st.session_state["prediction"]
-            probability = st.session_state["probability"]
-            encoded_input = st.session_state["encoded_input"]
+        # Store in session state so the Explainability tab can access them
+        st.session_state["encoded_input"] = encoded_input
+        st.session_state["prediction_label"] = prediction_label
+        st.session_state["probability"]   = probability
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("BMI", f"{bmi:.2f}")
-            with col2:
-                st.metric("Model Risk Score", f"{probability:.1%}")
+    # Show result if we have one (persists across reruns)
+    if "prediction_label" in st.session_state:
+        prediction_label  = st.session_state["prediction_label"]
+        probability = st.session_state["probability"]
+        encoded_input = st.session_state["encoded_input"]
 
-            if prediction == 1:
-                st.error(
-                    f"**Result: Elevated Risk (Overweight Level II)**  \n"
-                    f"The model assigns a {probability:.1%} probability of Overweight Level II."
-                )
-            else:
-                st.success(
-                    f"**Result: Lower Risk**  \n"
-                    f"The model assigns a {probability:.1%} probability of Overweight Level II."
-                )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("BMI", f"{bmi:.2f}")
+        with col2:
+            st.metric("Model Confidence", f"{probability:.1%}")
 
-            # ── Individual SHAP Waterfall Plot ──
-            st.subheader("Individual Prediction Explanation")
-            st.caption(
-                "The waterfall chart shows how each feature pushed the prediction "
-                "above (red) or below (blue) the model's baseline."
+        if "Normal_Weight" in prediction_label or "Insufficient" in prediction_label:
+            st.success(
+                f"**Result: {prediction_label.replace('_', ' ')}**  \n"
+                f"The model assigns a {probability:.1%} confidence."
             )
-            with st.spinner("Computing individual SHAP values…"):
-                explainer = get_shap_explainer(model)
-                raw_ind   = explainer.shap_values(encoded_input)
+        else:
+            st.error(
+                f"**Result: {prediction_label.replace('_', ' ')}**  \n"
+                f"The model assigns a {probability:.1%} confidence."
+            )
 
-                if isinstance(raw_ind, list):
-                    sv = raw_ind[1][0]
-                    bv = explainer.expected_value[1]
-                else:
-                    sv = raw_ind[0]
-                    bv = (explainer.expected_value[0]
-                          if hasattr(explainer.expected_value, "__len__")
-                          else explainer.expected_value)
-
-                ind_exp = shap.Explanation(
-                    values=sv,
-                    base_values=bv,
-                    data=encoded_input.values[0],
-                    feature_names=list(encoded_input.columns),
-                )
-
-                fig_ind, ax_ind = plt.subplots()
-                shap.plots.waterfall(ind_exp, show=False)
-                fig_ind = plt.gcf()
-                st.pyplot(fig_ind, bbox_inches="tight")
-                plt.close("all")
-
-            with st.expander("Encoded feature vector sent to model"):
-                st.dataframe(encoded_input)
-
-
-# ════════════════════════════════════════════════════════
-# TAB 2 — Explainability
-# ════════════════════════════════════════════════════════
-with tab_xai:
-    st.subheader("Global Feature Importance — SHAP Summary Plot")
-    st.markdown(
-        "Each dot represents one training sample. Features are ranked by their "
-        "average impact on the model output. **Red** = high feature value, "
-        "**Blue** = low feature value."
-    )
-
-    if model is None or feature_cols is None:
-        st.warning("Model or processed data not found. Please train the model first.")
-    else:
-        with st.spinner("Computing global SHAP values (this may take a moment)…"):
-            global_shap_vals, X_sample = get_global_shap_values()
-
-        fig_global, _ = plt.subplots()
-        shap.summary_plot(global_shap_vals, X_sample, show=False)
-        fig_global = plt.gcf()
-        st.pyplot(fig_global, bbox_inches="tight")
-        plt.close("all")
-
+        # ── Individual SHAP Waterfall Plot ──
+        st.subheader("Individual Prediction Explanation")
         st.caption(
-            f"Summary computed on a random sample of {len(X_sample)} training rows. "
-            "Re-run `src/train_model.py` to refresh the model."
+            "The waterfall chart shows how each feature pushed the prediction "
+            "above (red) or below (blue) the model's baseline."
         )
+        with st.spinner("Computing individual SHAP values…"):
+            explainer = get_shap_explainer(model)
+            raw_ind   = explainer.shap_values(encoded_input)
+
+            if isinstance(raw_ind, list):
+                # Use the specific predicted class index
+                sv = raw_ind[prediction][0]
+                bv = explainer.expected_value[prediction]
+            else:
+                sv = raw_ind[0]
+                bv = (explainer.expected_value[0]
+                      if hasattr(explainer.expected_value, "__len__")
+                      else explainer.expected_value)
+
+            ind_exp = shap.Explanation(
+                values=sv,
+                base_values=bv,
+                data=encoded_input.values[0],
+                feature_names=list(encoded_input.columns),
+            )
+
+            fig_ind, ax_ind = plt.subplots(figsize=(10, 5))
+            shap.plots.waterfall(ind_exp, max_display=10, show=False)
+            fig_ind = plt.gcf()
+            st.pyplot(fig_ind, bbox_inches="tight")
+            plt.close("all")
+
+        with st.expander("Encoded feature vector sent to model"):
+            st.dataframe(encoded_input)
+
+st.markdown("---")
+# ════════════════════════════════════════════════════════
+# Global Explainability
+# ════════════════════════════════════════════════════════
+st.subheader("Global Feature Importance — SHAP Summary Plot")
+st.markdown(
+    "Each dot represents one training sample. Features are ranked by their "
+    "average impact on the model output. **Red** = high feature value, "
+    "**Blue** = low feature value."
+)
+
+if model is None or feature_cols is None:
+    st.warning("Model or processed data not found. Please train the model first.")
+else:
+    with st.spinner("Computing global SHAP values (this may take a moment)…"):
+        global_shap_vals, X_sample = get_global_shap_values()
+
+    fig_global, ax_global = plt.subplots(figsize=(10, 6))
+    shap.summary_plot(global_shap_vals, X_sample, plot_size=(10, 6), max_display=12, show=False)
+    fig_global = plt.gcf()
+    st.pyplot(fig_global, bbox_inches="tight")
+    plt.close("all")
+
+    st.caption(
+        f"Summary computed on a random sample of {len(X_sample)} training rows. "
+        "Re-run `src/train_model.py` to refresh the model."
+    )

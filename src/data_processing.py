@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 
 def optimize_memory(df):
@@ -30,8 +31,16 @@ def optimize_memory(df):
 
 def encode_categorical(df):
     """
-    Encodes categorical features.
+    Encodes categorical features. Be sure not to encode the target variable.
     """
+    target_col = 'NObeyesdad'
+    if target_col in df.columns:
+        target = df[target_col]
+        features = df.drop(columns=[target_col])
+        features_encoded = pd.get_dummies(features, drop_first=True)
+        # Re-attach target
+        features_encoded[target_col] = target
+        return features_encoded
     return pd.get_dummies(df, drop_first=True)
 
 def handle_missing_values(df):
@@ -42,11 +51,21 @@ def handle_missing_values(df):
         print("Warning: Missing values found, but not expected based on dataset info.")
     return df
 
+def engineer_features(df):
+    """
+    Generates new mathematical features based on SHAP XAI correlations.
+    BMI = Weight (kg) / Height (m)^2
+    """
+    if 'Weight' in df.columns and 'Height' in df.columns:
+        df['BMI'] = df['Weight'] / (df['Height'] ** 2)
+    return df
+
 def prepare_features(df):
     """
     Combines the steps.
     """
     df = handle_missing_values(df)
+    df = engineer_features(df)
     df = optimize_memory(df)
     df = encode_categorical(df)
     return df
