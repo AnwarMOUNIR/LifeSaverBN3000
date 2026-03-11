@@ -38,3 +38,12 @@ sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f")
 
 plt.title("Correlation Heatmap")
 plt.show()
+
+# 16: Class distribution of obesity levels
+df['NObeyesdad'].value_counts().plot(kind='bar')
+
+plt.title("Distribution of Obesity Levels")
+plt.xlabel("Obesity Level")
+plt.ylabel("Count")
+
+plt.show()
