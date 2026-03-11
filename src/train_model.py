@@ -72,9 +72,12 @@ def run_pipeline(processed_data_path):
             
         elif name == "XGBoost":  # <-- ADD THIS PART!
             print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
+<<<<<<< HEAD
             
         elif name == "LightGBM":  # <-- ADDED FOR LIGHTGBM
             print(f"\n[LOG] {name} Predictions (first 15): {preds[:15]}")
+=======
+>>>>>>> 43764a0c843b5e0991996e2c416d7f77e7d315af
 
         metrics = {
             "Model": name,
@@ -101,4 +104,8 @@ def run_pipeline(processed_data_path):
 
 if __name__ == "__main__":
     # Point this to the NEW file in the processed folder
+<<<<<<< HEAD
     run_pipeline('data/processed/processed_data.csv')
+=======
+    run_pipeline('data/processed/processed_data.csv')
+>>>>>>> 43764a0c843b5e0991996e2c416d7f77e7d315af
