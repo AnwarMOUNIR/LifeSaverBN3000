@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import joblib
 import os
+import sys
 from sklearn.pipeline import Pipeline
 import matplotlib
 matplotlib.use("Agg")
@@ -20,10 +21,23 @@ REPO_ROOT = os.path.dirname(APP_DIR)
 MODEL_PATH = os.path.join(REPO_ROOT, "models", "best_model.pkl")
 PROCESSED_DATA_PATH = os.path.join(REPO_ROOT, "data", "processed", "processed_data.csv")
 
+# Add REPO_ROOT to sys.path to allow imports from src/
+if REPO_ROOT not in sys.path:
+    sys.path.append(REPO_ROOT)
+
+from src.train_model import apply_sanity_guards
+
 # ── Load Model, Feature Columns & SHAP Explainer ──
 def load_model():
     if os.path.exists(MODEL_PATH):
-        return joblib.load(MODEL_PATH)
+        obj = joblib.load(MODEL_PATH)
+        # Diagnostic print for Streamlit Cloud logs
+        print(f"DEBUG: Loaded model type: {type(obj)}")
+        if hasattr(obj, 'steps'):
+            print(f"DEBUG: Pipeline steps: {[s[0] for s in obj.steps]}")
+            if hasattr(obj.steps[0][1], 'feature_names_in_'):
+                print(f"DEBUG: Expected input features: {obj.steps[0][1].feature_names_in_}")
+        return obj
     return None
 
 def get_feature_columns():
@@ -34,22 +48,40 @@ def get_feature_columns():
 
 def get_shap_explainer(_model):
     """Build a TreeExplainer (works for RF, XGBoost, LightGBM, CatBoost)."""
-    return shap.TreeExplainer(_model)
+    # If it's a pipeline, extract the actual estimator (the last step)
+    if hasattr(_model, 'steps'):
+        actual_model = _model.steps[-1][1]
+    else:
+        actual_model = _model
+    return shap.TreeExplainer(actual_model)
 
-def get_global_shap_values():
+def get_global_shap_values(_model):
     """
     Compute SHAP values on a sample of the training data for the global
     summary plot. Results are cached so this only runs once.
     """
-    df = pd.read_csv(PROCESSED_DATA_PATH)
+    # Use raw data for global SHAP to ensure consistency with pipeline
+    raw_data_path = os.path.join(REPO_ROOT, "data", "raw", "ObesityDataSet_synthetic.csv")
+    if not os.path.exists(raw_data_path):
+        # Fallback to processed data if raw is missing
+        raw_data_path = PROCESSED_DATA_PATH
+        
+    df = pd.read_csv(raw_data_path)
     X = df.iloc[:, :-1]
-    # Sample for speed; adjust size as needed
-    X_sample = X.sample(min(300, len(X)), random_state=42)
-    explainer = get_shap_explainer(load_model())
-    raw = explainer.shap_values(X_sample)
+    # Sample for speed
+    X_sample_raw = X.sample(min(300, len(X)), random_state=42)
     
-    # SHAP will naturally render a stacked bar plot for lists (multiclass)
-    return raw, X_sample
+    # We must encode the raw sample using the model's preprocessor
+    if hasattr(_model, 'steps'):
+        preprocessing_pipe = Pipeline(_model.steps[:-1])
+        X_sample_encoded = preprocessing_pipe.transform(X_sample_raw)
+    else:
+        X_sample_encoded = X_sample_raw
+
+    explainer = get_shap_explainer(_model)
+    raw = explainer.shap_values(X_sample_encoded)
+    
+    return raw, X_sample_encoded
 
 model = load_model()
 feature_cols = get_feature_columns()
@@ -135,7 +167,12 @@ elif feature_cols is None:
                "Please run `src/data_processing.py` first.")
 else:
     if st.button("Run Prediction", type="primary"):
-        # The new pipeline handles Engineering and Encoding!
+        # Clear previous session state for fresh prediction
+        for key in ["prediction_label", "raw_model_label", "probability", "is_guard_active", "encoded_input", "input_data_bmi"]:
+            if key in st.session_state:
+                del st.session_state[key]
+                
+        # The new pipeline handles Encoding internally
         prediction_val = model.predict(input_data)[0]
         probability = model.predict_proba(input_data)[0][prediction_val]
         
@@ -146,7 +183,6 @@ else:
         prediction_label = le.inverse_transform([prediction_val])[0] if le else str(prediction_val)
 
         # Apply Safety Guards
-        from src.train_model import apply_sanity_guards
         final_label = apply_sanity_guards(input_data, prediction_label)
         
         is_guard_active = (final_label != prediction_label)
@@ -162,29 +198,35 @@ else:
         preprocessing_pipe = Pipeline(model.steps[:-1])
         st.session_state["encoded_input"] = preprocessing_pipe.transform(input_data)
         st.session_state["prediction_val"] = prediction_val
+        st.session_state["input_data_bmi"] = weight / (height ** 2)
 
     # Show result if we have one (persists across reruns)
     if "prediction_label" in st.session_state:
         prediction_label  = st.session_state["prediction_label"]
         probability = st.session_state["probability"]
         encoded_input = st.session_state["encoded_input"]
-        is_guard_active = st.session_state.get("is_guard_active", False)
-
         if is_guard_active:
             st.warning(f"🛡️ **Safety Guard Active**: The ML model predicted '{st.session_state['raw_model_label'].replace('_', ' ')}', but physiological rules overrode this to ensure medical accuracy.")
-
-        st.metric("Model Confidence", f"{probability:.1%}")
+        
+        # Diagnostic columns
+        c1, c2 = st.columns(2)
+        c1.metric("Model Confidence", f"{probability:.1%}")
+        c2.metric("Calculated BMI", f"{bmi:.2f}")
 
         if "Normal_Weight" in prediction_label or "Insufficient" in prediction_label:
             st.success(
-                f"**Result: {prediction_label.replace('_', ' ')}**  \n"
-                f"The model assigns a {probability:.1%} confidence."
+                f"**Final Result: {prediction_label.replace('_', ' ')}**"
             )
         else:
             st.error(
-                f"**Result: {prediction_label.replace('_', ' ')}**  \n"
-                f"The model assigns a {probability:.1%} confidence."
+                f"**Final Result: {prediction_label.replace('_', ' ')}**"
             )
+        
+        st.info(f"💡 **Diagnostic Trace**:")
+        st.code(f"Original Model Prediction: {st.session_state.get('raw_model_label', '')}\n"
+                f"Applied Overridden Label: {prediction_label}\n"
+                f"Guard Triggered: {is_guard_active}\n"
+                f"Calculated BMI: {st.session_state.get('input_data_bmi', 0):.2f}")
 
         # ── Individual SHAP Waterfall Plot ──
         st.subheader("Individual Prediction Explanation")
@@ -202,21 +244,27 @@ else:
                 sv = raw_ind[prediction_val][0]
                 bv = explainer.expected_value[prediction_val]
             else:
-                # XGBoost Multiclass returns (samples, features, classes) -> e.g. (1, 24, 7)
+                # Scikit-learn/XGBoost Multiclass returns (samples, features, classes) or similar
                 prediction_val = st.session_state["prediction_val"]
                 if len(getattr(raw_ind, "shape", [])) == 3:
+                    # Case for 3D array (e.g., XGBoost)
                     sv = raw_ind[0, :, prediction_val]
                     bv = explainer.expected_value[prediction_val]
-                else:
+                elif len(getattr(raw_ind, "shape", [])) == 2 and raw_ind.shape[0] == 1:
+                    # Case for 2D array (samples, features) for a single class or binary
                     sv = raw_ind[0]
-                    bv = (explainer.expected_value[0]
+                    bv = (explainer.expected_value[prediction_val] 
                           if hasattr(explainer.expected_value, "__len__")
                           else explainer.expected_value)
+                else:
+                    # Fallback
+                    sv = raw_ind[0]
+                    bv = explainer.expected_value
 
             ind_exp = shap.Explanation(
                 values=sv,
                 base_values=bv,
-                data=encoded_input.values[0],
+                data=encoded_input.values[0] if hasattr(encoded_input, "values") else encoded_input[0],
                 feature_names=list(encoded_input.columns),
             )
 
@@ -238,7 +286,7 @@ if model is None or feature_cols is None:
     st.warning("Model or processed data not found. Please train the model first.")
 else:
     with st.spinner("Computing global SHAP values (this may take a moment)…"):
-        global_shap_vals, X_sample = get_global_shap_values()
+        global_shap_vals, X_sample = get_global_shap_values(model)
 
     tab1, tab2 = st.tabs(["Feature Ranking (Simple)", "Detailed Impact (Summary Plot)"])
     

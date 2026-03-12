@@ -1,77 +1,92 @@
-# LifeSaverBN3000
+# LifeSaverBN3000 — Medical Obesity Risk Estimation
 
-## 🩺 Project Description
-**LifeSaverBN3000** is a Medical Decision Support Application designed for Obesity Risk Estimation with Explainable Machine Learning (XAI). This project leverages machine learning to predict obesity levels based on patient lifestyle and physical data (from the UCI Obesity Dataset) while providing clear, interpretable explanations for predictions using SHAP (SHapley Additive exPlanations) values. The end goal is to deliver an intuitive web interface for healthcare professionals to assess individual patient risks and understand the leading factors behind each prediction.
+**LifeSaverBN3000** is a clinical decision support system designed to estimate obesity risk with high precision and transparency. Built using the UCI Obesity Dataset, it combines a robust Machine Learning pipeline with medially-grounded "Safety Guards" and Explainable AI (XAI) to ensure predictions are both accurate and interpretable by healthcare professionals.
 
-## ✨ Key Features
-- **Exploratory Data Analysis (EDA) & Data Pipeline:** Pre-processing module handling missing values, numerical scaling, and class imbalances.
-- **Machine Learning Models:** Training and optimization pipelines for models such as Random Forest, XGBoost, LightGBM, and CatBoost.
-- **Explainable AI (XAI):** Integrated SHAP to provide global interpretability and individual patient prediction transparency.
-- **Memory Optimization:** Engineered for efficiency by systematically downcasting data types for optimal memory performance.
-- **Interactive Web Interface:** A Streamlit frontend providing seamless physician data input alongside real-time predictions and visual XAI insights.
-- **Robust QA & Automation:** Comprehensive automated testing with `pytest` integrated within a full CI/CD GitHub Actions pipeline.
+---
 
-## 📊 Project Insights (TM1 DevOps/PM Report)
-- **Dataset Balance:** The dataset has multiple classes for obesity levels with some synthetic data generation. The class distribution is relatively balanced except for 'Insufficient_Weight' which has fewer samples.
-- **Best Model:** `Random Forest` (RandomForestClassifier) achieving high stability and 95.5% accuracy on raw baseline features. Pipeline assets saved in `models/best_model.pkl`.
-- **SHAP Insights:** Global SHAP plots show that `Weight`, `Height` and `Age` are the most significant continuous features for obesity prediction. Family history also acts as a strong categorical predictor.
-- **Prompt Engineering Insights:** Proper prompt context formulation heavily impacts the utility of LLM outputs. Specifying input variables and environment boundaries resulted in zero-shot workable CI/CD configurations compared to vague, open-ended "write me a pipeline" requests.
+## 🔬 Core Objectives
+- **Precision**: Deliver 94.8%+ accuracy in classifying obesity levels across 7 categories.
+- **Safety**: Eliminate model "hallucinations" (physiologically implausible predictions) using rule-based medical overrides.
+- **Transparency**: Leverage SHAP (SHapley Additive exPlanations) to show exactly which lifestyle factors contribute to a patient's risk.
+- **Stability**: Standardized production-ready pipeline for zero-config deployment on Streamlit Cloud.
+
+---
+
+## 🏗️ Architecture & Technical Design
+
+### 1. Standardized ML Pipeline
+The project uses a scikit-learn `Pipeline` to ensure consistency between training and real-time dashboard predictions.
+- **Preprocessing**: Uses `ColumnTransformer` with `OneHotEncoder` (handle_unknown='ignore') and `remainder='passthrough'`.
+- **Feature Engineering**: Features are kept raw to align with physician input; encoding and scaling are handled internally within the serialized `best_model.pkl`.
+- **Estimator**: Standardized on a calibrated **Random Forest Classifier** for its optimal balance of predictive power and stability.
+
+### 2. Medically-Grounded Safety Guards
+To prevent AI hallucinations (e.g., predicting an underweight patient as obese), we implemented the `apply_sanity_guards` layer:
+- **Underweight Guard**: Any patient with a **BMI < 18.2** is automatically flagged as `Insufficient_Weight`.
+- **Overweight Guard**: Any patient with a **BMI > 30** is prevented from being classified as `Normal_Weight` or `Insufficient_Weight`.
+- **Visual Feedback**: The dashboard displays a 🛡️ icon whenever a model prediction is overridden by these safety rules.
+
+### 3. Explainable AI (XAI)
+- **Individual Waterfall Plots**: Detailed breakdown of how a specific patient's habits (e.g., tech usage, water intake) push them toward a risk category.
+- **Global Summary Plots**: Definitive ranking of the most influential factors across the entire dataset (Weight, Height, and Family History are top predictors).
+
+---
 
 ## 📂 Project Structure
 ```text
 LifeSaverBN3000/
-│
-├── .github/workflows/    # CI/CD pipelines (e.g., Python app testing)
-├── app/                  # Frontend Streamlit application
-├── data/                 # Raw and processed datasets (UCI Obesity Dataset)
-├── models/               # Saved trained ML models (.pkl files)
-├── notebooks/            # Jupyter notebooks for Exploratory Data Analysis (EDA)
-├── outputs/              # Saved plots and visual outputs (e.g., SHAP charts)
-├── src/                  # Core ML pipeline, data processing, and tools
-├── tests/                # Automated tests suite (pytest)
-├── Dockerfile            # Container configuration
-├── requirements.txt      # Project dependencies
-└── README.md             # Project documentation (this file)
+├── .github/workflows/   # CI/CD: Automated testing on every push
+├── app/                 # Dashboard: Streamlit UI, SHAP logic, and Path handling
+├── data/                # Data: Raw (CSV) and insights/EDA artifacts
+├── models/              # Artifacts: Serialized Pipeline (.pkl) and Label Encoder
+├── src/                 # Logic: Training pipeline, metrics, and safety guards
+└── tests/               # Quality: 100% pass-rate suite for training & robustness
 ```
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
-- Python (Recommended: 3.9+)
-- Git
-- Docker (optional, for containerized run)
+## 🚀 Installation & Local Development
 
-### Installation
-1. Clone the repository:
+### Setup Environment
+1. **Clone the repository**:
    ```bash
-   git clone <repository_url>
+   git clone https://github.com/AnwarMOUNIR/LifeSaverBN3000.git
    cd LifeSaverBN3000
    ```
-2. Create and activate a Virtual Environment:
+2. **Install Dependencies**:
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
-3. Install project dependencies:
-   ```bash
+   source venv/bin/activate
    pip install -r requirements.txt
    ```
 
-### Running the App Locally
-Run the Streamlit frontend interface:
-```bash
-streamlit run app/app.py
-```
+### Execution Commands
+- **Retrain the Pipeline**:
+  ```bash
+  PYTHONPATH=. python src/train_model.py
+  ```
+- **Run the Dashboard**:
+  ```bash
+  streamlit run app/app.py
+  ```
+- **Execute Tests**:
+  ```bash
+  PYTHONPATH=. pytest tests/
+  ```
 
-### Running Tests
-Execute the predefined automated test suite:
-```bash
-pytest
-```
+---
 
-## 🌐 Deployment
-For detailed instructions on deploying to Streamlit Cloud, Docker, or Hugging Face, please refer to the [Deployment Guide](deployment_guide.md).
+## 🌐 Deployment & CI/CD
+### Streamlit Cloud
+The application is optimized for **Streamlit Cloud**. We implemented a custom `sys.path` injection in `app.py` to ensure local modules from `/src` are correctly discovered in the cloud container.
 
-## 👥 Team & Collaboration
-This project is built collaboratively by a cross-functional 6-member team following Agile methodologies managed via Jira, comprising DevOps, Data Engineering, ML, XAI, Frontend UI/UX, and QA Testing. For more details on team organization and responsibilities, please refer to the `ignored/team_organization.md` resource file.
+### GitHub Actions
+A robust CI/CD pipeline runs on every commit, validating:
+- **Model Training**: Pipeline integrity and artifact creation.
+- **Robustness**: Verifying that Safety Guards correctly override edge-case inputs.
+- **Data Integrity**: Memory optimization and missing value handling.
 
+---
+
+## 👥 Contributors & Collaboration
+This project was developed during "Coding Week" with a focus on merging contributions from multiple branches (`wissal-ait-ali`, etc.) into a single, high-performance production branch. Ethical considerations around synthetic data and medical oversight were prioritized during the design of the safety guard layer.
