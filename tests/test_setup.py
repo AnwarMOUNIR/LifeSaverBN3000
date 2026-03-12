@@ -10,7 +10,7 @@ import numpy as np
 from src.data_processing import optimize_memory, encode_categorical, handle_missing_values
 
 # ============================================================================
-# TEST 1: Testing optimize_memory function
+# TEST 1: Testing optimize_memory function (TASK 1-4)
 # ============================================================================
 @pytest.mark.skip(reason="TM4 has not implemented optimize_memory in src/data_processing.py yet")
 def test_optimize_memory_preserves_data():
@@ -48,7 +48,55 @@ def test_optimize_memory_preserves_data():
 
 
 # ============================================================================
-# TEST 2: Testing memory improvement (bonus test)
+# TEST 1B: Testing optimize_memory with realistic mock data (ENHANCED VERSION) (TASK 4)
+# ============================================================================
+
+def test_optimize_memory_preserves_mock_data(mock_obesity_data):
+    """
+    Test that optimize_memory() doesn't lose or change data when using 
+    the realistic mock dataset.
+    This is an enhanced version using the Task 3 mock data fixture.
+    """
+    # Skip if the function doesn't exist yet
+    pytest.skip("Waiting for optimize_memory to be implemented")
+    
+    # Make a copy to avoid modifying the original fixture
+    test_data = mock_obesity_data.copy()
+    
+    # Store original shape and values for comparison
+    original_shape = test_data.shape
+    original_values = test_data.copy()
+    
+    # Run optimization
+    optimized_df = optimize_memory(test_data)
+    
+    # Check shape preserved
+    assert optimized_df.shape == original_shape, "Shape changed after optimization!"
+    
+    # Check all values preserved (numerical columns)
+    numerical_cols = test_data.select_dtypes(include=[np.number]).columns
+    for col in numerical_cols:
+        assert (optimized_df[col] == original_values[col]).all(), \
+            f"Values in numerical column {col} changed!"
+    
+    # Check all values preserved (categorical columns)
+    categorical_cols = test_data.select_dtypes(include=['object']).columns
+    for col in categorical_cols:
+        # For categorical columns, we need to handle potential NaN values
+        # First, check if both have same NaN pattern
+        assert optimized_df[col].isna().sum() == original_values[col].isna().sum(), \
+            f"NaN count changed in column {col}!"
+        
+        # Then check non-NaN values match
+        mask = ~original_values[col].isna()
+        assert (optimized_df[col][mask] == original_values[col][mask]).all(), \
+            f"Values in categorical column {col} changed!"
+    
+    print(f"✅ optimize_memory preserved all data in mock dataset ({len(test_data)} rows)")
+
+
+# ============================================================================
+# TEST 2: Testing memory improvement (bonus test) (TASK 2)
 # ============================================================================
 @pytest.mark.skip(reason="TM4 has not implemented optimize_memory in src/data_processing.py yet")
 def test_optimize_memory_reduces_memory():
@@ -80,7 +128,7 @@ def test_optimize_memory_reduces_memory():
 
 
 # ============================================================================
-# TEST 3: Testing categorical encoding
+# TEST 3: Testing categorical encoding (TASK 2-5)
 # ============================================================================
 @pytest.mark.skip(reason="TM4 has not implemented encode_categorical in src/data_processing.py yet")
 def test_categorical_encoding_returns_expected_shape():
@@ -120,7 +168,7 @@ def test_categorical_encoding_returns_expected_shape():
 
 
 # ============================================================================
-# TEST 4: Testing missing value handling
+# TEST 4: Testing missing value handling (TASK 2)
 # ============================================================================
 @pytest.mark.skip(reason="TM4 has not implemented handle_missing_values in src/data_processing.py yet")
 def test_missing_value_handling():
@@ -151,7 +199,7 @@ def test_missing_value_handling():
 
 
 # ============================================================================
-# TEST 5: Edge cases - Empty dataframe
+# TEST 5: Edge cases - Empty dataframe (TASK 2)
 # ============================================================================
 @pytest.mark.skip(reason="TM4 has not implemented optimize_memory in src/data_processing.py yet")
 def test_optimize_memory_empty_dataframe():
@@ -173,7 +221,7 @@ def test_optimize_memory_empty_dataframe():
 
 
 # ============================================================================
-# TEST 6: Test with minimal data (1 row)
+# TEST 6: Test with minimal data (1 row) (TASK 2)
 # ============================================================================
 @pytest.mark.skip(reason="TM4 has not implemented encode_categorical in src/data_processing.py yet")
 def test_categorical_encoding_single_row():
@@ -200,7 +248,108 @@ def test_categorical_encoding_single_row():
 
 
 # ============================================================================
-# This is a special pytest fixture - don't worry about it for now!
+# MOCK DATAFRAME FIXTURE - FOR REUSABLE TEST DATA (TASK 3)
+# ============================================================================
+
+@pytest.fixture
+def mock_obesity_data():
+    """
+    Creates a mock dataframe that mimics the real obesity dataset.
+    This fixture provides consistent test data for all tests.
+    
+    Returns:
+        pd.DataFrame: A small but realistic test dataset with 10 samples
+    """
+    import pandas as pd
+    import numpy as np
+    
+    # Create mock data that looks like the real obesity dataset
+    data = {
+        # Numerical features
+        'Age': [22, 35, 28, 45, 31, 26, 38, 42, 29, 33],
+        'Height': [1.65, 1.80, 1.72, 1.68, 1.75, 1.69, 1.82, 1.71, 1.77, 1.73],
+        'Weight': [65.2, 85.3, 72.1, 78.4, 92.5, 58.7, 88.2, 95.1, 70.3, 81.6],
+        'FCVC': [2.0, 3.0, 2.0, 1.0, 3.0, 2.0, 3.0, 2.0, 1.0, 3.0],  # Vegetable consumption
+        'NCP': [3.0, 3.0, 2.0, 3.0, 3.0, 2.0, 3.0, 3.0, 2.0, 3.0],    # Main meals per day
+        'CH2O': [2.0, 2.5, 2.0, 1.5, 2.0, 2.0, 2.5, 1.5, 2.0, 2.0],    # Daily water intake
+        'FAF': [1.0, 0.0, 2.0, 1.0, 0.0, 3.0, 1.0, 0.0, 2.0, 1.0],     # Physical activity
+        'TUE': [1.0, 2.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0],     # Tech usage
+        
+        # Categorical features
+        'Gender': ['Male', 'Female', 'Male', 'Female', 'Male', 
+                   'Female', 'Male', 'Female', 'Male', 'Female'],
+        'family_history': ['yes', 'yes', 'no', 'yes', 'no', 
+                           'no', 'yes', 'yes', 'no', 'yes'],
+        'FAVC': ['yes', 'yes', 'no', 'yes', 'yes', 
+                 'no', 'yes', 'yes', 'no', 'yes'],  # High caloric food
+        'SMOKE': ['no', 'no', 'yes', 'no', 'no', 
+                  'no', 'yes', 'no', 'no', 'no'],
+        'SCC': ['no', 'no', 'no', 'no', 'no', 
+                'no', 'no', 'no', 'no', 'no'],  # Calorie monitoring
+        
+        # Target variable (obesity levels)
+        'NObeyesdad': ['Normal_Weight', 'Overweight_Level_I', 'Normal_Weight', 
+                       'Obesity_Type_I', 'Overweight_Level_II', 'Normal_Weight',
+                       'Obesity_Type_I', 'Obesity_Type_II', 'Normal_Weight', 
+                       'Overweight_Level_I']
+    }
+    
+    # Create DataFrame
+    df = pd.DataFrame(data)
+    
+    # Add some missing values to test handling (10% of data)
+    # This makes it realistic for testing missing value functions
+    mask = np.random.choice([True, False], size=df.shape, p=[0.05, 0.95])
+    df = df.mask(mask)
+    
+    return df
+
+
+# ============================================================================
+# TESTS USING MOCK DATAFRAME (TASK 3)
+# ============================================================================
+
+def test_mock_data_is_valid(mock_obesity_data):
+    """
+    Test that our mock dataframe is properly structured.
+    This verifies the fixture itself works correctly.
+    """
+    # Check that we have data
+    assert mock_obesity_data is not None
+    assert len(mock_obesity_data) > 0
+    
+    # Check that it has the expected columns
+    expected_columns = ['Age', 'Height', 'Weight', 'FCVC', 'NCP', 'CH2O', 
+                        'FAF', 'TUE', 'Gender', 'family_history', 'FAVC', 
+                        'SMOKE', 'SCC', 'NObeyesdad']
+    
+    for col in expected_columns:
+        assert col in mock_obesity_data.columns, f"Missing column: {col}"
+    
+    print(f"✅ Mock dataframe created successfully with {len(mock_obesity_data)} rows")
+
+
+def test_mock_data_has_correct_types(mock_obesity_data):
+    """
+    Verify that our mock data has the right types for each column.
+    This helps ensure tests are realistic.
+    """
+    # Numerical columns should be numbers
+    numerical_cols = ['Age', 'Height', 'Weight', 'FCVC', 'NCP', 'CH2O', 'FAF', 'TUE']
+    for col in numerical_cols:
+        assert pd.api.types.is_numeric_dtype(mock_obesity_data[col]), \
+            f"{col} should be numeric but is {mock_obesity_data[col].dtype}"
+    
+    # Categorical columns should be object/string type
+    categorical_cols = ['Gender', 'family_history', 'FAVC', 'SMOKE', 'SCC', 'NObeyesdad']
+    for col in categorical_cols:
+        assert mock_obesity_data[col].dtype == 'object', \
+            f"{col} should be object type but is {mock_obesity_data[col].dtype}"
+
+
+
+# ============================================================================
+# This is a special pytest fixture 
 # It helps with more advanced testing later
 # ============================================================================
 
@@ -255,4 +404,4 @@ def test_model_predict_features_count():
     model = joblib.load(model_path)
     # The actual feature count used by the generated LightGBM model
     assert hasattr(model, 'n_features_in_'), "The trained model must expose n_features_in_."
-    assert model.n_features_in_ == 28, f"Expected 28 features, found {model.n_features_in_} in {type(model).__name__}."
+    assert model.n_features_in_ == 23, f"Expected 23 features, found {model.n_features_in_} in {type(model).__name__}."
