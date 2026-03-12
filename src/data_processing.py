@@ -83,6 +83,7 @@ def process_data(input_path, output_filename="processed_data.csv"):
     print(f"✔ Success! Processed data saved to: {output_path}")
     
     return output_path
+
 def load_processed_data(file_name="processed_data.csv"):
     """
     Loads the processed dataset from data/processed/.
@@ -96,5 +97,9 @@ def load_processed_data(file_name="processed_data.csv"):
         return None
 
 if __name__ == "__main__":
-    # Run this to test it
-    process_data("data/ObesityDataSet_raw_and_data_sinthetic.csv")
+    # Support both original and Wissal's synthetic dataset
+    input_file = "data/raw/ObesityDataSet_synthetic.csv"
+    if not os.path.exists(input_file):
+        input_file = "data/ObesityDataSet_raw_and_data_sinthetic.csv"
+        
+    process_data(input_file)

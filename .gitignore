@@ -52,5 +52,4 @@ Thumbs.db
 # Custom folders
 ignored/
 jira_tasks_backlog/
-.claude/worktrees/optimistic-ptolemy/
-Project/
+run_project.sh

@@ -13,5 +13,8 @@ pytest
 # Streamlit frontend UI
 streamlit
 
+# Visualization
+seaborn
+
 # Explainable AI (XAI)
 shap>=0.45.0  # SHAP for model explainability (project requirement)

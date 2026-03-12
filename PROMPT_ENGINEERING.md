@@ -22,74 +22,74 @@ This file tracks the prompts you used to build `LifeSaverBN3000`, the AI's respo
 ---
 
 ### TM2: Data Engineer
-**Objective:** Memory Optimization and Data Types
+**Objective:** [e.g., Handling Missing Values in UCI Obesity Dataset]
 - **Initial Prompt:** 
-  > _"How can I reduce the memory footprint of my pandas dataframe?"_
+  > _[Insert Prompt]_
 - **AI Response Summary:** 
-  > _The AI provided a script iterating through columns to downcast integer and float types to their minimum viable size._
+  > _[Insert Summary]_
 - **Refinement / Follow-up Prompt:** 
-  > _"Can you write a reusable function `optimize_memory(df)` that also checks if `object` types can be converted to `category` by checking unique value counts?"_
+  > _[Insert Refinement]_
 - **Final Outcome/Code Used:**
-  > _Implemented `optimize_memory` in `src/data_processing.py` successfully reducing DF memory usage._
+  > _[Insert Outcome]_
 - **Reflection:** 
-  > _The initial prompt was generic. Refining it specifically to a reusable function and explaining the condition for `object` conversion made the code drop-in ready._
+  > _[Explain why the prompt needed refinement]_
 
 ---
 
 ### TM3: Machine Learning Engineer
-**Objective:** Training pipelines with LightGBM and custom categories
+**Objective:** [e.g., GridSearch on Random Forest]
 - **Initial Prompt:**
-  > _"How do I train LightGBM?"_
+  > _[Insert Prompt]_
 - **AI Response Summary:**
-  > _Provided a basic `model = LGBMClassifier().fit(X, y)` script._
+  > _[Insert Summary]_
 - **Refinement / Follow-up Prompt:**
-  > _"I am getting pandas data type issues because of categorical object columns. I need to encode them using get_dummies but also make sure it works perfectly when we use model.predict(X) in our tests. Can you wrap it in an Sklearn Pipeline?"_
+  > _[Insert Refinement]_
 - **Final Outcome/Code Used:**
-  > _Created `train_model` in `src/train_model.py` which returns a full Pipeline consisting of a FunctionTransformer for dummy encoding and the LightGBM classifier._
+  > _[Insert Outcome]_
 - **Reflection:**
-  > _Models need to accept raw input rows natively during deployment/testing. Moving from a basic script to strict pipeline architecture resolved dtype mismatch issues._
+  > _[Explain why the prompt needed refinement]_
 
 ---
 
 ### TM4: Explainable AI & Optimization Engineer
-**Objective:** Generating SHAP plots for individual predictions
+**Objective:** [e.g., Generating SHAP plots from XGBoost]
 - **Initial Prompt:**
-  > _"How do I use SHAP in streamlit?"_
+  > _[Insert Prompt]_
 - **AI Response Summary:**
-  > _Provided generic code using `shap.force_plot` and `st_shap` wrapper._
+  > _[Insert Summary]_
 - **Refinement / Follow-up Prompt:**
-  > _"Streamlit sometimes has issues with JS force plots. How can I render a static matplotlib waterfall plot for an individual prediction using TreeExplainer?"_
+  > _[Insert Refinement]_
 - **Final Outcome/Code Used:**
-  > _Implemented `shap.plots.waterfall(ind_exp, show=False)` in `app/app.py` passed directly to `st.pyplot()`._
+  > _[Insert Outcome]_
 - **Reflection:**
-  > _AI tend to suggest interactive JS versions of SHAP plots which require third-party streamlit components. Explicitly asking for static Matplotlib versions is much safer and cleaner for deployment._
+  > _[Explain why the prompt needed refinement]_
 
 ---
 
 ### TM5: Frontend UI/UX Engineer
-**Objective:** Connecting the predictive model to the interface
+**Objective:** [e.g., Connecting Model predict to Streamlit button]
 - **Initial Prompt:**
-  > _"Write a Streamlit sidebar to input patient data."_
+  > _[Insert Prompt]_
 - **AI Response Summary:**
-  > _Created standard input elements._
+  > _[Insert Summary]_
 - **Refinement / Follow-up Prompt:**
-  > _"The model was trained on `pd.get_dummies(drop_first=True)`. We need a function that takes the user inputs and identically replicates the 23 feature columns required by the model before calling predict."_
+  > _[Insert Refinement]_
 - **Final Outcome/Code Used:**
-  > _Created `encode_input` in `app/app.py` mapping explicit Streamlit fields to dummy values and reindexing against exactly what the model expects._
+  > _[Insert Outcome]_
 - **Reflection:**
-  > _UI inputs must exactly mirror model expectations. The prompt correctly guided the AI from standard UI generation to strict data transformation logic._
+  > _[Explain why the prompt needed refinement]_
 
 ---
 
 ### TM6: QA & Testing Engineer
-**Objective:** Serialization issues in tests
+**Objective:** [e.g., Writing pytest scripts for model loading]
 - **Initial Prompt:**
-  > _"My joblib.dump is failing with _pickle.PicklingError: Can't pickle local object."_
+  > _[Insert Prompt]_
 - **AI Response Summary:**
-  > _Explained that nested/local functions cannot be pickled by Python's standard libraries._
+  > _[Insert Summary]_
 - **Refinement / Follow-up Prompt:**
-  > _"My Local object is `def encode(df)` inside `train_model()`. How do I extract this to be compatible with Sklearn's FunctionTransformer across modules?"_
+  > _[Insert Refinement]_
 - **Final Outcome/Code Used:**
-  > _Moved `encode_wrapper` and `validate_shape` outside to module-level scope in `src/train_model.py`._
+  > _[Insert Outcome]_
 - **Reflection:**
-  > _Asking directly about the specific error trace helped avoid general testing theory and moved directly to a functional python syntax fix._
+  > _[Explain why the prompt needed refinement]_
