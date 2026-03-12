@@ -1,8 +1,6 @@
 # Ignore data and models
 data/
-!data/processed/processed_data.csv
-models/
-!models/*.pkl
+models/*.pkl
 
 # Ignore python environment and cache
 __pycache__/
@@ -54,8 +52,3 @@ Thumbs.db
 # Custom folders
 ignored/
 jira_tasks_backlog/
-run_project.sh
-.claude/worktrees/optimistic-ptolemy/
-Project/
-run_project.sh
-deployment_guide.md

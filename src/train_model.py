@@ -2,10 +2,10 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+
 
 # Models
 from sklearn.ensemble import RandomForestClassifier
@@ -15,114 +15,21 @@ from catboost import CatBoostClassifier
 
 def calculate_metrics(y_true, y_pred, y_prob, model_name="Model"):
     """
-    Calculates standard binary/multiclass classification metrics and returns them.
+    Calculates standard binary classification metrics and returns them as a dictionary.
     """
-    try:
-        # For multiclass, we use 'ovr' (One-vs-Rest)
-        auc = roc_auc_score(y_true, y_prob, multi_class='ovr')
-    except Exception:
-        auc = 0.0
-        
     return {
         "Model": model_name,
-        "ROC-AUC": round(auc, 4),
+        "ROC-AUC": round(roc_auc_score(y_true, y_prob), 4),
         "Accuracy": round(accuracy_score(y_true, y_pred), 4),
-        "Precision": round(precision_score(y_true, y_pred, average='weighted', zero_division=0), 4),
-        "Recall": round(recall_score(y_true, y_pred, average='weighted', zero_division=0), 4),
-        "F1-Score": round(f1_score(y_true, y_pred, average='weighted', zero_division=0), 4)
+        "Precision": round(precision_score(y_true, y_pred), 4),
+        "Recall": round(recall_score(y_true, y_pred), 4),
+        "F1-Score": round(f1_score(y_true, y_pred), 4)
     }
-
-def encode_wrapper(df, reference_columns=None):
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
-
-def encode_wrapper(df, reference_columns=None):
-    """
-    Module-level function for pickling. Uses reference_columns 
-    if provided to ensure equal shapes during predict.
-    """
-    encoded = pd.get_dummies(df, drop_first=True)
-    if reference_columns is not None:
-        # Check strict feature names at prediction time to pass exact tests
-        missing = set(reference_columns) - set(encoded.columns)
-        extra = set(encoded.columns) - set(reference_columns)
-        if len(missing) > 0 and len(encoded.columns) + len(missing) != len(reference_columns):
-            # strict exception if number of original base columns is wrong
-            pass 
-        # For simplicity, if number of raw cols passed to pipeline doesn't match original raw cols, throw error
-        # Pipeline receives raw dataframe.
-        
-        encoded = encoded.reindex(columns=reference_columns, fill_value=0)
-    return encoded
-
-def get_encoder(reference_columns=None):
-    return FunctionTransformer(encode_wrapper, kw_args={"reference_columns": reference_columns}, validate=False)
-
-def validate_shape(df, expected_cols=None):
-    if expected_cols is not None and len(df.columns) != expected_cols:
-        raise ValueError(f"Expected {expected_cols} features, got {len(df.columns)}")
-    return df
-
-def get_shape_validator(expected_cols):
-    return FunctionTransformer(validate_shape, kw_args={"expected_cols": expected_cols}, validate=False)
-
-def train_model(X, y):
-    """
-    Trains the best model pipeline logic. Just a helper for the tests.
-    (Real pipeline fits on Train and evaluates on test, handled in run_pipeline).
-    We will fit a LightGBM for the purpose of this isolated function since LightGBM is best.
-    """
-    # Create the pipeline with a custom step to strictly check raw columns shape
-    shape_validator = get_shape_validator(len(X.columns))
-    
-    # First get reference columns from training data
-    ref_cols = pd.get_dummies(X, drop_first=True).columns
-    encoder = get_encoder(ref_cols)
-    model = LGBMClassifier(n_estimators=100, random_state=42)
-    
-    # Use an sklearn Pipeline so predict() handles encoding natively.
-    pipe = Pipeline([('shape_check', shape_validator), ('encoder', encoder), ('model', model)])
-    pipe.fit(X, y)
-    
-    return pipe
-
-def save_model(model, path):
-    """
-    Saves a trained model to the specified path.
-    """
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    joblib.dump(model, path)
-    print(f"Model saved to {path}")
-
-def load_model(path):
-    """
-    Loads a trained model from the specified path.
-    """
-    if os.path.exists(path):
-        return joblib.load(path)
-    else:
-        print(f"Error: Model not found at {path}")
-        return None
 
 def load_processed_data(file_path="data/processed/processed_data.csv"):
     """
-    Module-level function for pickling. Ensures feature consistency.
+    Standard function to load the dataset after it has been cleaned.
     """
-    encoded = pd.get_dummies(df, drop_first=True)
-    if reference_columns is not None:
-        encoded = encoded.reindex(columns=reference_columns, fill_value=0)
-    return encoded
-
-def get_encoder(reference_columns=None):
-    return FunctionTransformer(encode_wrapper, kw_args={"reference_columns": reference_columns}, validate=False)
-
-def validate_shape(df, expected_cols=None):
-    if expected_cols is not None and len(df.columns) != expected_cols:
-        raise ValueError(f"Expected {expected_cols} features, got {len(df.columns)}")
-    return df
-
-def get_shape_validator(expected_cols):
-    return FunctionTransformer(validate_shape, kw_args={"expected_cols": expected_cols}, validate=False)
     try:
         data = pd.read_csv(file_path)
         print(f"Successfully loaded {len(data)} rows from {file_path}")
@@ -131,8 +38,6 @@ def get_shape_validator(expected_cols):
         print(f"Error: The file at {file_path} does not exist.")
         return None
     
-from sklearn.preprocessing import LabelEncoder
-
 def run_pipeline(processed_data_path):
     # 1. Load the PREPROCESSED Data
     if not os.path.exists(processed_data_path):
@@ -141,29 +46,28 @@ def run_pipeline(processed_data_path):
     
     df = pd.read_csv(processed_data_path)
 
+    # --- Inside your run_pipeline function ---
+
     # 1. Separate Features (X) and Target (y)
     X = df.iloc[:, :-1] 
-    y_raw = df.iloc[:, -1]
-    
-    le = LabelEncoder()
-    y = le.fit_transform(y_raw)
-    
-    # Save label encoder for frontend to decode predictions
-    os.makedirs('models', exist_ok=True)
-    joblib.dump(le, 'models/label_encoder.pkl')
+    y = df.iloc[:, -1]
 
-    # 2. Split Data
+    # 2. ADD THE SPLIT HERE
+    # test_size=0.2 means 20% for testing, leaving 80% for training
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+    X, 
+    y, 
+    test_size=0.2, 
+    random_state=42
     )
 
-    # 3. Model Comparison (Wissal's valuable addition)
-    print("🚀 Comparing multiple models...")
-    base_models = {
+    # 3. Then proceed to define and train your models...
+    # 2. Define the 4 Models
+    models = {
         "Random Forest": RandomForestClassifier(random_state=42),
-        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42),
-        "LightGBM": LGBMClassifier(random_state=42),
-        "CatBoost": CatBoostClassifier(verbose=0, random_state=42)
+        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
+        "LightGBM": LGBMClassifier(),
+        "CatBoost": CatBoostClassifier(verbose=0)
     }
 
     results = []
@@ -172,10 +76,10 @@ def run_pipeline(processed_data_path):
     print(f"{'Model':<20} | {'AUC':<8} | {'Acc':<8} | {'Prec':<8} | {'Rec':<8} | {'F1':<8}")
     print("-" * 75)
 
-    for name, model in base_models.items():
+    for name, model in models.items():
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
-        probs = model.predict_proba(X_test)
+        probs = model.predict_proba(X_test)[:, 1]
 
         # --- NEW CODE FOR YOUR TASK ---
         if name == "Random Forest":
@@ -224,7 +128,7 @@ def run_pipeline(processed_data_path):
     }
 
     # Grab the untrained base model and its matching grid
-    best_base_model = base_models[best_model_name]
+    best_base_model = models[best_model_name]
     grid = param_grids[best_model_name]
 
     # Set up the Random Search
@@ -234,42 +138,26 @@ def run_pipeline(processed_data_path):
         n_iter=10,        # Number of random combinations to try
         scoring='roc_auc',# Optimize for ROC-AUC
         cv=3,             # 3-fold cross-validation
-    # 2. ADD THE SPLIT HERE
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, 
-        y, 
-        test_size=0.2, 
-        random_state=42
-    )
-
-    # 2. Fast-track Training (Using Random Forest for maximum stability)
-    print("🚀 Training optimized Random Forest model on 23 raw features...")
-    
-    model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=20,
         random_state=42,
-        n_jobs=1
+        n_jobs=-1         # Use all available CPU cores
     )
-    
-    model.fit(X_train, y_train)
-    
-    # 3. Quick Evaluation
-    preds = model.predict(X_test)
-    probs = model.predict_proba(X_test)
-    metrics = calculate_metrics(y_test, preds, probs, model_name="RandomForest")
-    
-    print("\n" + "=" * 50)
-    print(f"Final Model Metrics (Test Set):")
-    print(f"Accuracy: {metrics['Accuracy']}")
-    print(f"ROC-AUC:  {metrics['ROC-AUC']}")
-    print("=" * 50)
 
-    # 4. Save best model
+    # 5. Train the tuned model
+    random_search.fit(X_train, y_train)
+    tuned_model = random_search.best_estimator_
+    
+    print(f"✅ Tuning Complete! Best Parameters: {random_search.best_params_}")
+
+    # 6. Save the TUNED Model
     save_path = "models/best_model.pkl"
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    joblib.dump(model, save_path)
-    print(f"✔ Success! Model saved to {save_path}")
+    joblib.dump(tuned_model, save_path)
+    
+    print("-" * 75)
+    print(f"DONE! Tuned {best_model_name} saved to {save_path}")
+    
+    
 
 if __name__ == "__main__":
+    # Point this to the NEW file in the processed folder
     run_pipeline('data/processed/processed_data.csv')
