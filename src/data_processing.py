@@ -1,23 +1,81 @@
 import pandas as pd
+import numpy as np
 import os
 
-# TM4 TODO: Implement these functions
 def optimize_memory(df):
-    pass
+    """
+    Optimizes memory usage by adjusting data types.
+    """
+    start_mem = df.memory_usage().sum() / 1024**2
+    
+    for col in df.columns:
+        col_type = df[col].dtypes
+        if col_type != object:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == 'int':
+                if c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df[col] = df[col].astype(np.int32)
+                else:
+                    df[col] = df[col].astype(np.int64)
+            else:
+                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                else:
+                    df[col] = df[col].astype(np.float64)
+                    
+    end_mem = df.memory_usage().sum() / 1024**2
+    print(f"Memory usage decreased from {start_mem:.2f} MB to {end_mem:.2f} MB")
+    
+    return df
 
 def encode_categorical(df):
-    pass
+    """
+    Encodes categorical features. Be sure not to encode the target variable.
+    """
+    target_col = 'NObeyesdad'
+    if target_col in df.columns:
+        target = df[target_col]
+        features = df.drop(columns=[target_col])
+        features_encoded = pd.get_dummies(features, drop_first=True)
+        # Re-attach target
+        features_encoded[target_col] = target
+        return features_encoded
+    return pd.get_dummies(df, drop_first=True)
 
 def handle_missing_values(df):
-    pass
+    """
+    Checks for missing values and handles them by dropping rows with NaNs.
+    While UCI documentation says there are none, synthetic data or tests might have them.
+    """
+    if df.isnull().sum().sum() > 0:
+        print(f"Warning: {df.isnull().sum().sum()} missing values found. Dropping rows.")
+        df = df.dropna()
+    return df
+
+def engineer_features(df):
+    """
+    Passthrough. We removed the BMI feature to prevent model over-reliance,
+    relying instead on post-processing safety guards.
+    """
+    return df
+
+def prepare_features(df):
+    """
+    Combines the steps.
+    """
+    df = handle_missing_values(df)
+    df = engineer_features(df)
+    df = optimize_memory(df)
+    df = encode_categorical(df)
+    return df
 
 def process_data(input_path, output_filename="processed_data.csv"):
     # 1. Load the raw data
     df = pd.read_csv(input_path)
     
-    # 2. Perform your transformations (like get_dummies)
-    # This turns 'Gender', 'Family History', etc., into 0s and 1s
-    df_processed = pd.get_dummies(df, drop_first=True)
+    # 2. Perform your transformations
+    df_processed = prepare_features(df)
     
     # 3. Define the output path
     output_path = os.path.join("data", "processed", output_filename)
@@ -27,6 +85,7 @@ def process_data(input_path, output_filename="processed_data.csv"):
     print(f"✔ Success! Processed data saved to: {output_path}")
     
     return output_path
+
 def load_processed_data(file_name="processed_data.csv"):
     """
     Loads the processed dataset from data/processed/.
@@ -40,5 +99,5 @@ def load_processed_data(file_name="processed_data.csv"):
         return None
 
 if __name__ == "__main__":
-    # Run this to test it
-    process_data("data/ObesityDataSet_raw_and_data_sinthetic.csv")
+    input_file = "data/raw/ObesityDataSet_synthetic.csv"
+    process_data(input_file)
