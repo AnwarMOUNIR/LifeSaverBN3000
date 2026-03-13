@@ -10,6 +10,8 @@ venv/
 .venv/
 .env
 
+prompts/
+
 catboost_info
 
 # Ignore standard python builds and OS files

@@ -1,0 +1,13 @@
+# Full Development Requirements
+-r requirements.txt
+
+# Machine Learning Frameworks (Heavy)
+xgboost
+lightgbm
+catboost
+
+# Visualization & EDA
+seaborn
+
+# Testing
+pytest

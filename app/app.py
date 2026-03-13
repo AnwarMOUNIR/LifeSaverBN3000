@@ -63,25 +63,28 @@ def get_global_shap_values(_model):
     # Use raw data for global SHAP to ensure consistency with pipeline
     raw_data_path = os.path.join(REPO_ROOT, "data", "raw", "ObesityDataSet_synthetic.csv")
     if not os.path.exists(raw_data_path):
-        # Fallback to processed data if raw is missing
-        raw_data_path = PROCESSED_DATA_PATH
+        return None, None
         
-    df = pd.read_csv(raw_data_path)
-    X = df.iloc[:, :-1]
-    # Sample for speed
-    X_sample_raw = X.sample(min(300, len(X)), random_state=42)
-    
-    # We must encode the raw sample using the model's preprocessor
-    if hasattr(_model, 'steps'):
-        preprocessing_pipe = Pipeline(_model.steps[:-1])
-        X_sample_encoded = preprocessing_pipe.transform(X_sample_raw)
-    else:
-        X_sample_encoded = X_sample_raw
+    try:
+        df = pd.read_csv(raw_data_path)
+        X = df.iloc[:, :-1]
+        # Sample for speed
+        X_sample_raw = X.sample(min(300, len(X)), random_state=42)
+        
+        # We must encode the raw sample using the model's preprocessor
+        if hasattr(_model, 'steps'):
+            preprocessing_pipe = Pipeline(_model.steps[:-1])
+            X_sample_encoded = preprocessing_pipe.transform(X_sample_raw)
+        else:
+            X_sample_encoded = X_sample_raw
 
-    explainer = get_shap_explainer(_model)
-    raw = explainer.shap_values(X_sample_encoded)
-    
-    return raw, X_sample_encoded
+        explainer = get_shap_explainer(_model)
+        raw = explainer.shap_values(X_sample_encoded)
+        
+        return raw, X_sample_encoded
+    except Exception as e:
+        print(f"ERROR: Global SHAP computation failed: {e}")
+        return None, None
 
 model = load_model()
 feature_cols = get_feature_columns()
@@ -288,7 +291,10 @@ else:
     with st.spinner("Computing global SHAP values (this may take a moment)…"):
         global_shap_vals, X_sample = get_global_shap_values(model)
 
-    tab1, tab2 = st.tabs(["Feature Ranking (Simple)", "Detailed Impact (Summary Plot)"])
+    if global_shap_vals is None or X_sample is None:
+        st.warning("⚠️ **Global Explanation Unavailable**: The raw dataset was not found or is incompatible. Make sure `data/raw/ObesityDataSet_synthetic.csv` is present.")
+    else:
+        tab1, tab2 = st.tabs(["Feature Ranking (Simple)", "Detailed Impact (Summary Plot)"])
     
     with tab1:
         st.markdown(
@@ -316,3 +322,30 @@ else:
         f"Summary computed on a random sample of {len(X_sample)} training rows. "
         "Re-run `src/train_model.py` to refresh the model."
     )
+
+st.markdown("---")
+# ── Credits ──
+with st.expander("ℹ️ Meet the Team"):
+    st.markdown("""
+    <div style="text-align: center;">
+    
+    **Anwar Mounir**  
+    *Project Lead & DevOps*
+    
+    **Wissal Ait Ali**  
+    *Foundation Architect*
+    
+    **Zaid Kasimi**  
+    *UI/UX Architect*
+    
+    **Ihsane Abdou**  
+    *ML Developer*
+    
+    **Ikram Boulouqat**  
+    *XAI & Performance*
+    
+    **Meryem Soussi**  
+    *QA & Safety Specialist*
+    
+    </div>
+    """, unsafe_allow_html=True)

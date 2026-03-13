@@ -40,7 +40,10 @@ LifeSaverBN3000/
 ├── data/                # Data: Raw (CSV) and insights/EDA artifacts
 ├── models/              # Artifacts: Serialized Pipeline (.pkl) and Label Encoder
 ├── src/                 # Logic: Training pipeline, metrics, and safety guards
-└── tests/               # Quality: 100% pass-rate suite for training & robustness
+├── tests/               # Quality: 100% pass-rate suite for training & robustness
+├── Dockerfile           # Container configuration
+├── requirements.txt     # Project dependencies
+└── README.md            # Project documentation (this file)
 ```
 
 ---
@@ -54,10 +57,13 @@ LifeSaverBN3000/
    cd LifeSaverBN3000
    ```
 2. **Install Dependencies**:
+   For the web dashboard only:
    ```bash
-   python -m venv venv
-   source venv/bin/activate
    pip install -r requirements.txt
+   ```
+   For development (training, testing, EDA):
+   ```bash
+   pip install -r requirements-dev.txt
    ```
 
 ### Execution Commands
@@ -80,6 +86,22 @@ LifeSaverBN3000/
 ### Streamlit Cloud
 The application is optimized for **Streamlit Cloud**. We implemented a custom `sys.path` injection in `app.py` to ensure local modules from `/src` are correctly discovered in the cloud container.
 
+### Dockerized Deployment
+Alternatively, you can run the application using **Docker**. This ensures a consistent environment across different machines. The Docker image uses a minimal set of dependencies to keep the build fast and the image small.
+
+1. **Build the Docker Image**:
+   ```bash
+   docker build -t lifesaver-bn3000 .
+   ```
+
+2. **Run the Docker Container**:
+   ```bash
+   docker run -p 8501:8501 lifesaver-bn3000
+   ```
+
+3. **Access the Dashboard**:
+   Open your browser and navigate to [http://localhost:8501](http://localhost:8501).
+
 ### GitHub Actions
 A robust CI/CD pipeline runs on every commit, validating:
 - **Model Training**: Pipeline integrity and artifact creation.
@@ -89,4 +111,4 @@ A robust CI/CD pipeline runs on every commit, validating:
 ---
 
 ## 👥 Contributors & Collaboration
-This project was developed during "Coding Week" with a focus on merging contributions from multiple branches (`wissal-ait-ali`, etc.) into a single, high-performance production branch. Ethical considerations around synthetic data and medical oversight were prioritized during the design of the safety guard layer.
+This project was developed during "Coding Week" with a focus on merging contributions from multiple branches into a single, high-performance production branch. Ethical considerations around synthetic data and medical oversight were prioritized during the design of the safety guard layer.
