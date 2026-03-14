@@ -26,9 +26,32 @@ To prevent AI hallucinations (e.g., predicting an underweight patient as obese),
 - **Overweight Guard**: Any patient with a **BMI > 30** is prevented from being classified as `Normal_Weight` or `Insufficient_Weight`.
 - **Visual Feedback**: The dashboard displays a 🛡️ icon whenever a model prediction is overridden by these safety rules.
 
+#### Why Safety Guards? (Data Rationale)
+The underlying dataset has extremely sparse representation for patients with a **BMI < 18.2**. Without enough training samples, purely data-driven models may "hallucinate" incorrect classifications for these edge cases. The `Safety Guard` layer ensures that medical first principles take precedence in these low-confidence regions.
+
+![Safety Guard Rationale](data/insights/safety_guard_rationale.png)
+
 ### 3. Explainable AI (XAI)
 - **Individual Waterfall Plots**: Detailed breakdown of how a specific patient's habits (e.g., tech usage, water intake) push them toward a risk category.
 - **Global Summary Plots**: Definitive ranking of the most influential factors across the entire dataset (Weight, Height, and Family History are top predictors).
+
+---
+
+## 📊 Data Insights & Exploratory Analysis
+
+The following insights were derived from the initial exploratory data analysis of the Obesity Dataset, highlighting key patterns that drive the model's predictive power.
+
+### 1. BMI & Class Distribution
+Understanding the spread of BMI and how different obesity classes are represented in our dataset.
+
+| BMI Distribution | Class Distribution |
+| :---: | :---: |
+| ![BMI Distribution](data/insights/bmi_distribution.png) | ![Class Distribution](data/insights/class_distribution.png) |
+
+### 2. Feature Correlations
+This heatmap reveals the strength of relationships between lifestyle factors and physiological measurements. Weight and Height (used for BMI) show the strongest predictive signal.
+
+![Correlation Heatmap](data/insights/correlation_heatmap.png)
 
 ---
 

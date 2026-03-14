@@ -2,12 +2,13 @@
 -r requirements.txt
 
 # Machine Learning Frameworks (Heavy)
-xgboost
-lightgbm
-catboost
+xgboost==3.2.0
+lightgbm==4.6.0
+catboost==1.2.10
 
 # Visualization & EDA
-seaborn
+seaborn==0.13.2
+tabulate==0.10.0
 
 # Testing
-pytest
+pytest==9.0.2

@@ -1,12 +1,12 @@
-pandas
-numpy
-scikit-learn
-joblib
-matplotlib
+pandas==2.3.3
+numpy==2.4.3
+scikit-learn==1.8.0
+joblib==1.5.3
+matplotlib==3.10.8
 
 # Streamlit frontend UI
-streamlit>=1.42.0
-altair<5
+streamlit==1.55.0
+altair==5.5.0
 
 # Explainable AI (XAI)
-shap>=0.45.0  # SHAP for model explainability (project requirement)
+shap==0.51.0
